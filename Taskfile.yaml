@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - cmake --preset config
+      - cmake --build --preset build
+    
+
+
