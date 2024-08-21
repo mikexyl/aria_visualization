@@ -40,7 +40,6 @@ target_include_directories(${PROJECT_NAME}
 
 # Specify libraries to link with
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC
   ${DEPENDENCIES}
 )
 
@@ -49,7 +48,6 @@ export(EXPORT rerun_sdkTargets FILE rerun_sdkTargets.cmake)
 
 # Export the target for use in other projects
 export(TARGETS ${PROJECT_NAME}
-  NAMESPACE ${PROJECT_NAME}::
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
@@ -65,7 +63,6 @@ install(TARGETS ${PROJECT_NAME}
 # Install the export file for the target
 install(EXPORT ${PROJECT_NAME}Targets
   FILE ${PROJECT_NAME}Targets.cmake
-  NAMESPACE ${PROJECT_NAME}::
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
 

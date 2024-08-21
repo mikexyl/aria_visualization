@@ -5,6 +5,7 @@ tasks:
     cmds:
       - cmake --preset config
       - cmake --build --preset build
+      - sudo cmake --build --preset build --target install
     
 
 
