@@ -10,10 +10,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Download the rerun_sdk
 include(FetchContent)
 FetchContent_Declare(rerun_sdk URL
-  https://github.com/rerun-io/rerun/releases/download/0.17.0/rerun_cpp_sdk.zip)
+  https://github.com/rerun-io/rerun/releases/download/0.18.0/rerun_cpp_sdk.zip)
 FetchContent_MakeAvailable(rerun_sdk)
 
 find_package(aria_net REQUIRED)
+find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
 
 set(INCLUDES
@@ -25,6 +26,7 @@ set(DEPENDENCIES
   ${aria_net_LIBRARIES}
   rerun_sdk
   ${OpenCV_LIBS}
+  gtsam
 )
 add_library(${PROJECT_NAME} STATIC
   src/frame_visualizer_rerun.cpp
@@ -43,6 +45,10 @@ target_link_libraries(${PROJECT_NAME}
   ${DEPENDENCIES}
 )
 
+add_executable(test_rerun tests/rerun.cpp)
+target_include_directories(test_rerun PRIVATE ${INCLUDES})
+target_link_libraries(test_rerun ${PROJECT_NAME})
+
 # Export rerun_sdk
 export(EXPORT rerun_sdkTargets FILE rerun_sdkTargets.cmake)
 
@@ -51,12 +57,12 @@ export(TARGETS ${PROJECT_NAME}
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
-# Install the library
 install(TARGETS ${PROJECT_NAME}
-  EXPORT ${PROJECT_NAME}Targets # Export the target for use in other projects
-  LIBRARY DESTINATION lib # Where to install the shared library (.so/.dll/.dylib)
-  ARCHIVE DESTINATION lib # Where to install static libraries (if any)
-  RUNTIME DESTINATION bin # Where to install executables (if any)
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION include
 )
 
 # Skip installing headers since they are used in-place

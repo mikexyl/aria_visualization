@@ -4,8 +4,8 @@ tasks:
   build:
     cmds:
       - cmake --preset config
-      - cmake --build --preset build
-      - sudo cmake --build --preset build --target install
+      - source /opt/ros/humble/setup.sh && cmake --build --preset build
+      # - sudo cmake --build --preset build --target install
     
 
 

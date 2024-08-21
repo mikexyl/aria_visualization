@@ -15,11 +15,30 @@ class FrameVisualizerRerun : public FrameVisualizer {
   ARIA_DELETE_COPY_CONSTRUCTORS(FrameVisualizerRerun);
   ARIA_POINTER_TYPEDEFS(FrameVisualizerRerun);
 
-  FrameVisualizerRerun(Params param = {}) : agent_id_(std::nullopt) {
-    // Create a new `RecordingStream` which sends data over TCP to the viewer
-    // process.
+  class Params : public FrameVisualizer::Params {
+   public:
+    Params(std::string app_id,
+           std::optional<std::string> recording_id = std::nullopt)
+        : app_id(app_id) {
+      if (recording_id.has_value()) {
+        this->recording_id = recording_id.value();
+      } else {
+        // generate a random recording id
+        this->recording_id = std::to_string(std::rand());
+      }
+    }
+    std::string app_id;
+    std::string recording_id;
+  };
+
+  FrameVisualizerRerun(Params params) : agent_id_(std::nullopt) {
+    // Create a new `RecordingStream` which sends data over TCP to the
+    // viewer process.
+    spdlog::info("Connecting to rerun server as app_id: {}, recording_id: {}",
+                 params.app_id,
+                 params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
-        rerun::RecordingStream("cba_collaborative_ba"));
+        rerun::RecordingStream(params.app_id, params.recording_id));
     error_ = rec_->connect();
     error_.exit_on_failure();
 
@@ -73,6 +92,18 @@ class FrameVisualizerRerun : public FrameVisualizer {
                         const Eigen::Vector4f& rgba,
                         float line_width) override;
 
+  float visualizePoints(const std::string& entity_path,
+                        const std::vector<Point3>& points,
+                        const std::vector<Eigen::Vector4f>& rgba,
+                        float radius,
+                        bool is_static = false) override;
+
+  void visualizePoints(const std::string& entity_path,
+                       const std::vector<Point3>& points,
+                       const std::vector<Eigen::Vector4f>& rgba,
+                       std::vector<float> radius,
+                       bool is_static = false) override;
+
  protected:
   void visualizeTrackingImage(const cv::Mat& image,
                               const Frame::Ptr& frame) override;
@@ -96,18 +127,6 @@ class FrameVisualizerRerun : public FrameVisualizer {
       float radius = 0.01f,
       const std::vector<std::string>& labels = {},
       bool clear = false);
-
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const std::vector<Eigen::Vector4f>& rgba,
-                        float radius,
-                        bool is_static = false) override;
-
-  void visualizePoints(const std::string& entity_path,
-                       const std::vector<Point3>& points,
-                       const std::vector<Eigen::Vector4f>& rgba,
-                       std::vector<float> radius,
-                       bool is_static = false) override;
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;

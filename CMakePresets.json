@@ -12,7 +12,8 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
+        "CMAKE_INSTALL_PREFIX": "/usr/local"
       }
     }
   ],
