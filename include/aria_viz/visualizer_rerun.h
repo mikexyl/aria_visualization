@@ -1,37 +1,40 @@
 #pragma once
 
-#include <aria_net/ext_frame.h>
-#include <aria_net/frame_visualizer.h>
-
 #include <rerun.hpp>
 
+#include "aria_viz/visualizer.h"
+
 using namespace gtsam;
-using namespace aria::net;
 
-namespace aria::visualization {
+namespace aria::viz {
 
-class FrameVisualizerRerun : public FrameVisualizer {
+class VisualizerRerun : public Visualizer {
  public:
-  ARIA_DELETE_COPY_CONSTRUCTORS(FrameVisualizerRerun);
-  ARIA_POINTER_TYPEDEFS(FrameVisualizerRerun);
+  ARIA_DELETE_COPY_CONSTRUCTORS(VisualizerRerun);
+  ARIA_POINTER_TYPEDEFS(VisualizerRerun);
 
-  class Params : public FrameVisualizer::Params {
+  class Params : public Visualizer::Params {
    public:
-    Params(std::string app_id,
-           std::optional<std::string> recording_id = std::nullopt)
-        : app_id(app_id) {
+    Params(std::optional<std::string> app_id = std::nullopt,
+           std::optional<std::string> recording_id = std::nullopt) {
       if (recording_id.has_value()) {
         this->recording_id = recording_id.value();
       } else {
         // generate a random recording id
-        this->recording_id = std::to_string(std::rand());
+        this->recording_id = "";
+      }
+
+      if (app_id.has_value()) {
+        this->app_id = app_id.value();
+      } else {
+        this->app_id = this->recording_id;
       }
     }
     std::string app_id;
     std::string recording_id;
   };
 
-  FrameVisualizerRerun(Params params) : agent_id_(std::nullopt) {
+  VisualizerRerun(Params params) : agent_id_(std::nullopt) {
     // Create a new `RecordingStream` which sends data over TCP to the
     // viewer process.
     spdlog::info("Connecting to rerun server as app_id: {}, recording_id: {}",
@@ -47,31 +50,12 @@ class FrameVisualizerRerun : public FrameVisualizer {
         rerun::ViewCoordinates::RIGHT_HAND_Z_UP);  // Set an up-axis
   }
 
-  virtual ~FrameVisualizerRerun() {}
-
-  static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
-                                             const Eigen::Matrix2d& cov);
-
-  void visualize(const Frame::Ptr& frame) override;
+  virtual ~VisualizerRerun() {}
 
   void setTimeNSec(size_t timestamp) override;
 
-  void visualizeExtFrame(const ExtFrame::Ptr& ext_frame,
-                         size_t timestamp) override;
-
-  void connectFrames(
-      const std::string& entity_path,
-      Eigen::Vector4f rgba,
-      std::vector<std::pair<Frame::Ptr, Frame::Ptr>>& frame_pairs) override;
-
-  void connectLandmarks(const std::string& entity_path,
-                        Eigen::Vector4f rgba,
-                        std::vector<LandmarkPair>& landmark_pairs) override;
-
-  void connectFramesToLandmarks(
-      const std::string& entity_path,
-      Eigen::Vector4f rgba,
-      std::map<Landmark::Ptr, FrameSet>& landmarks_and_frames) override;
+  static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
+                                             const Eigen::Matrix2d& cov);
 
   void connectPointsToPoints(
       const std::string& entity_path,
@@ -105,21 +89,6 @@ class FrameVisualizerRerun : public FrameVisualizer {
                        bool is_static = false) override;
 
  protected:
-  void visualizeTrackingImage(const cv::Mat& image,
-                              const Frame::Ptr& frame) override;
-
-  void visualizeLandmarks(const std::map<LandmarkId, Point3>& landmarks,
-                          std::string frame_id,
-                          size_t timestamp) override;
-
-  void visualizeLandmarks(const Frame::Ptr& frame,
-                          const FrameDatabase::Ptr& frame_db,
-                          bool use_all_frames) override;
-
-  void step() override { FrameVisualizer::step(); }
-
-  void visualizeCameraPose(const Frame::Ptr& frame) override;
-
   void connectPositions3D(
       const std::string& entity_path,
       const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& positions,
@@ -135,4 +104,4 @@ class FrameVisualizerRerun : public FrameVisualizer {
   std::optional<AgentId> agent_id_;
 };
 
-}  // namespace aria::visualization
+}  // namespace aria::viz

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.23) # for cmake presets support
-project(aria_visualization VERSION 0.0.1)
+project(aria_viz VERSION 0.0.1)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-narrowing")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -13,23 +13,24 @@ FetchContent_Declare(rerun_sdk URL
   https://github.com/rerun-io/rerun/releases/download/0.18.0/rerun_cpp_sdk.zip)
 FetchContent_MakeAvailable(rerun_sdk)
 
-find_package(aria_net REQUIRED)
+find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
 
 set(INCLUDES
-  ${aria_net_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${aria_common_INCLUDE_DIRS}
 )
 
 set(DEPENDENCIES
-  ${aria_net_LIBRARIES}
   rerun_sdk
   ${OpenCV_LIBS}
   gtsam
+  ${aria_common_LIBRARIES}
 )
 add_library(${PROJECT_NAME} STATIC
-  src/frame_visualizer_rerun.cpp
+  src/visualizer.cpp
+  src/visualizer_rerun.cpp
 )
 
 # Specify include directories
