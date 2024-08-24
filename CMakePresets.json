@@ -13,7 +13,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
-        "CMAKE_INSTALL_PREFIX": "/usr/local"
+        "aria_common_DIR": "${sourceDir}/../aria_common/build"
       }
     }
   ],
