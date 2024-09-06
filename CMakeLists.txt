@@ -19,14 +19,13 @@ find_package(OpenCV REQUIRED)
 
 set(INCLUDES
   ${OpenCV_INCLUDE_DIRS}
-  ${aria_common_INCLUDE_DIRS}
 )
 
 set(DEPENDENCIES
   rerun_sdk
   ${OpenCV_LIBS}
   gtsam
-  ${aria_common_LIBRARIES}
+  aria_common
 )
 add_library(${PROJECT_NAME} STATIC
   src/visualizer.cpp
