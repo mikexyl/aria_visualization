@@ -10,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Download the rerun_sdk
 include(FetchContent)
 FetchContent_Declare(rerun_sdk URL
-  https://github.com/rerun-io/rerun/releases/download/0.18.0/rerun_cpp_sdk.zip)
+  https://github.com/rerun-io/rerun/releases/download/0.18.2/rerun_cpp_sdk.zip)
 FetchContent_MakeAvailable(rerun_sdk)
 
 find_package(aria_common REQUIRED)
