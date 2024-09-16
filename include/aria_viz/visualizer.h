@@ -127,11 +127,11 @@ class Visualizer {
       float radius = 0.01f,
       const std::vector<std::string>& labels = {}) {}
 
-  virtual float visualizePoints(const std::string& entity_path,
-                                const std::vector<Point3>& points,
-                                const Eigen::Vector4f& rgba,
-                                float radius,
-                                bool is_static = false) {
+  float visualizePoints(const std::string& entity_path,
+                        const std::vector<Point3>& points,
+                        const Eigen::Vector4f& rgba,
+                        float radius,
+                        bool is_static = false) {
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
     return visualizePoints(entity_path, points, rgbs, radius, is_static);
   }
@@ -208,7 +208,8 @@ class Visualizer {
                                 const NonlinearFactorGraph& factors,
                                 const Values& values,
                                 const Eigen::Vector4f& rgba,
-                                float line_width) {}
+                                float line_width,
+                                bool show_labels = false) {}
 
  protected:
   virtual void step() {

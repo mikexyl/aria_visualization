@@ -23,7 +23,8 @@ void VisualizerRerun::connectPositions3D(
     const Eigen::Vector4f& rgba,
     float radius,
     const std::vector<std::string>& labels,
-    bool clear) {
+    bool clear,
+    const std::vector<std::string>& text) {
   if (clear) rec_->log(entity_path, rerun::Clear(false));
 
   std::vector<rerun::Collection<rerun::Vec3D>> lines;
@@ -46,13 +47,14 @@ void VisualizerRerun::connectPointsToPoints(
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
     Eigen::Vector4f rgba,
     float radius,
-    const std::vector<std::string>& labels) {
+    const std::vector<std::string>& labels,
+    const std::vector<std::string>& text) {
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> positions;
   for (auto const& [point0, point1] : points_pairs) {
     positions.push_back({point0.cast<float>(), point1.cast<float>()});
   }
 
-  connectPositions3D(entity_path, positions, rgba, radius, labels, false);
+  connectPositions3D(entity_path, positions, rgba, radius, labels, false, text);
 }
 
 float VisualizerRerun::visualizePoints(const std::string& entity_path,
@@ -113,30 +115,34 @@ void VisualizerRerun::visualizePoints(const std::string& entity_path,
       is_static,
       rerun::Points3D(points_eigen).with_colors(colors).with_radii(radius));
 }
+
 void VisualizerRerun::visualizeUncertainty(const std::string& entity_path,
                                            const Point2& mean,
                                            const Eigen::Matrix2d& cov,
                                            const Eigen::Vector4f& rgba,
                                            float line_width) {
-  auto ellipse_points =
-      generateEllipse(mean, cov);  // only visualize the first one
+  // rerun supports Ellipsoids3D from 0.18.x
+  // https://rerun.io/docs/reference/types/archetypes/ellipsoids3d
 
-  // convert ellipse points to point pairs
-  std::vector<std::pair<Point3, Point3>> points_pairs;
-  for (size_t j = 0; j < ellipse_points.size() - 1; j++) {
-    points_pairs.push_back({ellipse_points[j], ellipse_points[j + 1]});
-  }
-  points_pairs.push_back({ellipse_points.back(), ellipse_points.front()});
+  auto [width, height, angle] = getEllipseFromCov2d(cov);
 
-  connectPointsToPoints(entity_path, points_pairs, rgba, line_width);
+  rec_->log(entity_path,
+            rerun::Ellipsoids3D::from_centers_and_radii(
+                {{mean.x(), mean.y(), 0}}, {{width, height, 0}})
+                .with_colors({fromEigen(rgba)})
+                .with_rotation_axis_angles({rerun::RotationAxisAngle(
+                    {0, 0, 1}, rerun::Angle::radians(angle))})
+                .with_line_radii(line_width));
 }
 
 void VisualizerRerun::visualizeFactors(const std::string& entity_path,
                                        const NonlinearFactorGraph& factors,
                                        const Values& values,
                                        const Eigen::Vector4f& rgba,
-                                       float line_width) {
+                                       float line_width,
+                                       bool show_labels) {
   std::vector<std::pair<Point3, Point3>> points;
+  std::vector<std::string> labels;
   for (const auto& factor : factors) {
     if (factor == nullptr) {
       continue;
@@ -157,14 +163,23 @@ void VisualizerRerun::visualizeFactors(const std::string& entity_path,
 
     if (p0.has_value() && p1.has_value()) {
       points.emplace_back(*p0, *p1);
+      if (keys.size() == 2) {
+        labels.push_back(fmt::format(
+            "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+      } else {
+        labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+      }
     }
   }
 
-  connectPointsToPoints(entity_path, points, rgba, line_width);
+  connectPointsToPoints(entity_path,
+                        points,
+                        rgba,
+                        line_width,
+                        show_labels ? labels : std::vector<std::string>{});
 }
 
-std::vector<Point3> VisualizerRerun::generateEllipse(
-    const Eigen::Vector2d& mean,
+std::tuple<double, double, double> VisualizerRerun::getEllipseFromCov2d(
     const Eigen::Matrix2d& cov) {
   // Compute the eigenvalues and eigenvectors
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(cov);
@@ -180,8 +195,15 @@ std::vector<Point3> VisualizerRerun::generateEllipse(
 
   // Eigenvectors are the directions of the ellipse's axes
   Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
-  double angle = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+  double angle_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
 
+  return {width, height, angle_rad};
+}
+
+std::vector<Point3> VisualizerRerun::generateEllipse(
+    const Eigen::Vector2d& mean,
+    const Eigen::Matrix2d& cov) {
+  auto [width, height, angle] = getEllipseFromCov2d(cov);
   // Generate ellipse points
   std::vector<Point3> ellipse_points;
   int num_points = 100;
@@ -198,6 +220,42 @@ std::vector<Point3> VisualizerRerun::generateEllipse(
     ellipse_points.push_back({x_rot + mean.x(), y_rot + mean.y(), 0});
   }
   return ellipse_points;
+}
+
+void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
+  // Ensure rec_ is valid
+  if (!rec_) {
+    throw std::runtime_error("RecordingStream pointer is null");
+  }
+
+  // Create a lambda function that captures `rec_` and adds messages to it
+  auto rerun_logger = [this](const spdlog::details::log_msg& msg) {
+    // Convert spdlog message to string, assuming msg.payload contains the log
+    // message
+    std::string message(msg.payload.begin(), msg.payload.end());
+
+    // spdlog level convert to rerun level
+    auto spdlog_level = msg.level;
+    rerun::TextLogLevel level(spdlog::level::to_short_c_str(spdlog_level));
+
+    // Forward the message to the RecordingStream
+    rec_->log("spdlog", rerun::TextLog(message).with_level(level));
+  };
+
+  // Create a spdlog sink with the lambda callback
+  auto sink = std::make_shared<logging::callback_sink_st>(rerun_logger);
+
+  // Set the sink's log level
+  sink->set_level(level);
+
+  // Get the default logger instance and attach the new sink
+  auto logger = spdlog::default_logger();
+  if (!logger) {
+    throw std::runtime_error("Default logger not found");
+  }
+
+  // Add the sink to the default logger
+  logger->sinks().push_back(sink);
 }
 
 }  // namespace aria::viz

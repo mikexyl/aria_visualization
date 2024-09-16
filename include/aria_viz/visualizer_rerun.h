@@ -54,6 +54,9 @@ class VisualizerRerun : public Visualizer {
 
   void setTimeNSec(size_t timestamp) override;
 
+  static std::tuple<double, double, double> getEllipseFromCov2d(
+      const Eigen::Matrix2d& cov);
+
   static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
                                              const Eigen::Matrix2d& cov);
 
@@ -62,7 +65,17 @@ class VisualizerRerun : public Visualizer {
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
       Eigen::Vector4f rgba,
       float radius = 0.01f,
-      const std::vector<std::string>& labels = {}) override;
+      const std::vector<std::string>& labels = {}) override {
+    connectPointsToPoints(entity_path, points_pairs, rgba, radius, labels, {});
+  }
+
+  void connectPointsToPoints(
+      const std::string& entity_path,
+      const std::vector<std::pair<Point3, Point3>>& points_pairs,
+      Eigen::Vector4f rgba,
+      float radius,
+      const std::vector<std::string>& labels,
+      const std::vector<std::string>& text);
 
   void visualizeUncertainty(const std::string& entity_path,
                             const Point2& mean,
@@ -74,7 +87,8 @@ class VisualizerRerun : public Visualizer {
                         const NonlinearFactorGraph& factors,
                         const Values& values,
                         const Eigen::Vector4f& rgba,
-                        float line_width) override;
+                        float line_width,
+                        bool show_labels = false) override;
 
   float visualizePoints(const std::string& entity_path,
                         const std::vector<Point3>& points,
@@ -88,6 +102,22 @@ class VisualizerRerun : public Visualizer {
                        std::vector<float> radius,
                        bool is_static = false) override;
 
+  float visualizePoints(const std::string& entity_path,
+                        const std::vector<Point3>& points,
+                        const Eigen::Vector4f& rgba,
+                        float radius,
+                        bool is_static = false) {
+    return Visualizer::visualizePoints(
+        entity_path, points, rgba, radius, is_static);
+  }
+
+  /**
+   * @brief add spdlog messages to rerun at the given level
+   *
+   * @param level
+   */
+  void addSpdlogToRerun(spdlog::level::level_enum level);
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,
@@ -95,7 +125,8 @@ class VisualizerRerun : public Visualizer {
       const Eigen::Vector4f& rgba,
       float radius = 0.01f,
       const std::vector<std::string>& labels = {},
-      bool clear = false);
+      bool clear = false,
+      const std::vector<std::string>& text = {});
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;
