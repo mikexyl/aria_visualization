@@ -124,7 +124,7 @@ void VisualizerRerun::visualizeUncertainty(const std::string& entity_path,
   // rerun supports Ellipsoids3D from 0.18.x
   // https://rerun.io/docs/reference/types/archetypes/ellipsoids3d
 
-  auto [width, height, angle] = getEllipseFromCov2d(cov);
+  auto [width, height, angle] = getEllipseFromCov(cov);
 
   rec_->log(entity_path,
             rerun::Ellipsoids3D::from_centers_and_radii(
@@ -132,6 +132,28 @@ void VisualizerRerun::visualizeUncertainty(const std::string& entity_path,
                 .with_colors({fromEigen(rgba)})
                 .with_rotation_axis_angles({rerun::RotationAxisAngle(
                     {0, 0, 1}, rerun::Angle::radians(angle))})
+                .with_line_radii(line_width));
+}
+
+void VisualizerRerun::visualizeUncertainty(const std::string& entity_path,
+                                           const Point3& mean,
+                                           const Eigen::Matrix3d& cov,
+                                           const Eigen::Vector4f& rgba,
+                                           float line_width) {
+  auto ellipse = getEllipseFromCov(cov);
+
+  rec_->log(entity_path,
+            rerun::Ellipsoids3D::from_centers_and_radii(
+                {{mean.x(), mean.y(), mean.z()}},
+                {{ellipse[0], ellipse[1], ellipse[2]}})
+                .with_colors({fromEigen(rgba)})
+                .with_rotation_axis_angles(
+                    {rerun::RotationAxisAngle(
+                         {1, 0, 0}, rerun::Angle::radians(ellipse[3])),
+                     rerun::RotationAxisAngle(
+                         {0, 1, 0}, rerun::Angle::radians(ellipse[4])),
+                     rerun::RotationAxisAngle(
+                         {0, 0, 1}, rerun::Angle::radians(ellipse[5]))})
                 .with_line_radii(line_width));
 }
 
@@ -179,7 +201,7 @@ void VisualizerRerun::visualizeFactors(const std::string& entity_path,
                         show_labels ? labels : std::vector<std::string>{});
 }
 
-std::tuple<double, double, double> VisualizerRerun::getEllipseFromCov2d(
+std::tuple<double, double, double> VisualizerRerun::getEllipseFromCov(
     const Eigen::Matrix2d& cov) {
   // Compute the eigenvalues and eigenvectors
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(cov);
@@ -200,10 +222,34 @@ std::tuple<double, double, double> VisualizerRerun::getEllipseFromCov2d(
   return {width, height, angle_rad};
 }
 
+std::vector<double> VisualizerRerun::getEllipseFromCov(
+    const Eigen::Matrix3d& cov) {
+  // Compute the eigenvalues and eigenvectors
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(cov);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Failed to compute eigenvalues and eigenvectors." << std::endl;
+    return {};
+  }
+
+  // Eigenvalues are the lengths of the ellipse's axes
+  Eigen::Vector3d eigenvalues = eigensolver.eigenvalues();
+  double x = std::sqrt(eigenvalues(0)) * 2;
+  double y = std::sqrt(eigenvalues(1)) * 2;
+  double z = std::sqrt(eigenvalues(2)) * 2;
+
+  // Eigenvectors are the directions of the ellipse's axes
+  Eigen::Matrix3d eigenvectors = eigensolver.eigenvectors();
+  double angle_x_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+  double angle_y_rad = std::atan2(eigenvectors(2, 1), eigenvectors(1, 1));
+  double angle_z_rad = std::atan2(eigenvectors(0, 2), eigenvectors(1, 2));
+
+  return {x, y, z, angle_x_rad, angle_y_rad, angle_z_rad};
+}
+
 std::vector<Point3> VisualizerRerun::generateEllipse(
     const Eigen::Vector2d& mean,
     const Eigen::Matrix2d& cov) {
-  auto [width, height, angle] = getEllipseFromCov2d(cov);
+  auto [width, height, angle] = getEllipseFromCov(cov);
   // Generate ellipse points
   std::vector<Point3> ellipse_points;
   int num_points = 100;

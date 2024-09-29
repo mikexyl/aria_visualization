@@ -204,6 +204,12 @@ class Visualizer {
                                     const Eigen::Vector4f& rgba,
                                     float line_width) {}
 
+  virtual void visualizeUncertainty(const std::string& entity_path,
+                                    const Point3& mean,
+                                    const Eigen::Matrix3d& cov,
+                                    const Eigen::Vector4f& rgba,
+                                    float line_width) {}
+
   virtual void visualizeFactors(const std::string& entity_path,
                                 const NonlinearFactorGraph& factors,
                                 const Values& values,

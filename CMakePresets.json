@@ -13,7 +13,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
-        "aria_common_DIR": "${sourceDir}/../aria_common/build"
+        "aria_common_DIR": "${sourceDir}/../aria_common/build",
+        "GTSAM_DIR": "/Users/mikexyl/Workspaces/deps/lib/cmake/GTSAM",
+        "rerun_sdk_DIR": "${sourceDir}/../rerun/install/lib/cmake/rerun_sdk"
       }
     }
   ],

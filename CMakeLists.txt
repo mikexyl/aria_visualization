@@ -8,14 +8,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-narrowing")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Download the rerun_sdk
-include(FetchContent)
-FetchContent_Declare(rerun_sdk URL
-  https://github.com/rerun-io/rerun/releases/download/0.18.2/rerun_cpp_sdk.zip)
-FetchContent_MakeAvailable(rerun_sdk)
-
 find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(rerun_sdk REQUIRED)
 
 get_target_property(aria_common_LOCATION aria_common LOCATION)
 message(STATUS "aria_common_LOCATION: ${aria_common_LOCATION}")
@@ -45,6 +41,7 @@ target_include_directories(${PROJECT_NAME}
 
 # Specify libraries to link with
 target_link_libraries(${PROJECT_NAME}
+  PUBLIC
   ${DEPENDENCIES}
 )
 
@@ -53,27 +50,27 @@ target_include_directories(test_rerun PRIVATE ${INCLUDES})
 target_link_libraries(test_rerun ${PROJECT_NAME})
 
 # Export rerun_sdk
-export(EXPORT rerun_sdkTargets FILE rerun_sdkTargets.cmake)
+# export(EXPORT rerun_sdkTargets FILE _deps/rerun_sdk-build/rerun_sdkTargets.cmake)
 
 # Export the target for use in other projects
-export(TARGETS ${PROJECT_NAME}
+export(TARGETS ${PROJECT_NAME} 
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
-install(TARGETS ${PROJECT_NAME}
-  EXPORT ${PROJECT_NAME}Targets
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  INCLUDES DESTINATION include
-)
+# install(TARGETS ${PROJECT_NAME}
+#   EXPORT ${PROJECT_NAME}Targets
+#   RUNTIME DESTINATION bin
+#   LIBRARY DESTINATION lib
+#   ARCHIVE DESTINATION lib
+#   INCLUDES DESTINATION include
+# )
 
-# Skip installing headers since they are used in-place
-# Install the export file for the target
-install(EXPORT ${PROJECT_NAME}Targets
-  FILE ${PROJECT_NAME}Targets.cmake
-  DESTINATION lib/cmake/${PROJECT_NAME}
-)
+# # Skip installing headers since they are used in-place
+# # Install the export file for the target
+# install(EXPORT ${PROJECT_NAME}Targets
+#   FILE ${PROJECT_NAME}Targets.cmake
+#   DESTINATION lib/cmake/${PROJECT_NAME}
+# )
 
 # Configure and install the package configuration file
 include(CMakePackageConfigHelpers)

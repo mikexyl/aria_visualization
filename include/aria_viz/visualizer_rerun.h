@@ -54,7 +54,9 @@ class VisualizerRerun : public Visualizer {
 
   void setTimeNSec(size_t timestamp) override;
 
-  static std::tuple<double, double, double> getEllipseFromCov2d(
+  static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
+
+  static std::tuple<double, double, double> getEllipseFromCov(
       const Eigen::Matrix2d& cov);
 
   static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
@@ -80,6 +82,12 @@ class VisualizerRerun : public Visualizer {
   void visualizeUncertainty(const std::string& entity_path,
                             const Point2& mean,
                             const Eigen::Matrix2d& cov,
+                            const Eigen::Vector4f& rgba,
+                            float line_width) override;
+
+  void visualizeUncertainty(const std::string& entity_path,
+                            const Point3& mean,
+                            const Eigen::Matrix3d& cov,
                             const Eigen::Vector4f& rgba,
                             float line_width) override;
 
