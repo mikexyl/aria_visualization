@@ -126,6 +126,10 @@ class VisualizerRerun : public Visualizer {
    */
   void addSpdlogToRerun(spdlog::level::level_enum level);
 
+  auto rec() { return rec_.get(); }
+
+  void plotBenchmarkStats();
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,

@@ -1,5 +1,6 @@
 #include "aria_viz/visualizer_rerun.h"
 
+#include <aria_common/benchmark.h>
 #include <aria_common/logging.h>
 
 #include "collection_adapters.hpp"
@@ -302,6 +303,23 @@ void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
 
   // Add the sink to the default logger
   logger->sinks().push_back(sink);
+}
+
+void VisualizerRerun::plotBenchmarkStats() {
+  // Ensure rec_ is valid
+  if (!rec_) {
+    throw std::runtime_error("RecordingStream pointer is null");
+  }
+
+  // Get the benchmark stats
+
+  // Iterate over the stats and log them
+  for (auto& [label, stat] : benchmarkStatsMap) {
+    std::lock_guard<std::mutex> lock(stat.mutex);
+
+    // Log the stats
+    rec_->log("timing/" + label, rerun::Scalar(stat.mean * stat.count));
+  }
 }
 
 }  // namespace aria::viz

@@ -151,10 +151,10 @@ class Visualizer {
                                bool is_static = false) {}
 
   static std::optional<Point3> getPoint3(const Key& key, const Values& values) {
-    auto dim = values.at(key).dim();
     if (values.exists(key) == false) {
       return std::nullopt;
     }
+    auto dim = values.at(key).dim();
     if (dim == 3) {
       auto point = values.at<Pose2>(key);
       return Point3(point.x(), point.y(), 0);
