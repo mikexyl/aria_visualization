@@ -317,8 +317,20 @@ void VisualizerRerun::plotBenchmarkStats() {
   for (auto& [label, stat] : benchmarkStatsMap) {
     std::lock_guard<std::mutex> lock(stat.mutex);
 
+    auto color = ColorMap::random(stat.label);
+
+    std::string label_with_index = stat.label;
+    if (stat.index.has_value()) {
+      label_with_index += "_" + std::to_string(stat.index.value());
+    }
+
+    rec_->log_static(
+        "timing/" + label_with_index,
+        rerun::SeriesLine().with_color({color(0), color(1), color(2)}));
+
     // Log the stats
-    rec_->log("timing/" + label, rerun::Scalar(stat.mean * stat.count));
+    rec_->log("timing/" + label_with_index,
+              rerun::Scalar(stat.mean));
   }
 }
 

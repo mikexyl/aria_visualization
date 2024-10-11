@@ -25,8 +25,22 @@ struct ColorMap {
     return Eigen::Vector3f(r, g, b);
   }
 
+  static Eigen::Vector3f random(std::string seed) {
+    // set random seed
+    std::seed_seq seed_seq(seed.begin(), seed.end());
+    std::mt19937 gen(seed_seq);
+    std::uniform_int_distribution<> dis(0, 150);
+
+    // generate a random vector from 0 to 256
+    float r = dis(gen) + 100;
+    float g = dis(gen) + 100;
+    float b = dis(gen) + 100;
+    return Eigen::Vector3f(r, g, b);
+  }
+
   static Eigen::Vector4f random(float alpha) {
-    return Eigen::Vector4f(random()(0), random()(1), random()(2), alpha);
+    Eigen::Vector3f color = random();
+    return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 
   static const Eigen::Vector3f kGreen;
