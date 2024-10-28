@@ -130,6 +130,24 @@ class VisualizerRerun : public Visualizer {
 
   void plotBenchmarkStats();
 
+  void visualizeUncertainty2D(const std::string& entity_path,
+                              const std::vector<Point2>& mean,
+                              const std::vector<Eigen::Matrix2d>& cov,
+                              const Eigen::Vector4f& rgba,
+                              bool is_static);
+
+  void visualizeUncertainty2D(const std::string& entity_path,
+                              const std::vector<Point3>& mean,
+                              const std::vector<Eigen::Matrix3d>& cov,
+                              const Eigen::Vector4f& rgba,
+                              bool is_static);
+
+  void visualizeUncertainty2D(const std::string& entity_path,
+                              const NonlinearFactorGraph& factors,
+                              const Values& values,
+                              const Eigen::Vector4f& rgba,
+                              bool is_static);
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,

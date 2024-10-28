@@ -2,6 +2,9 @@
 
 #include <aria_common/benchmark.h>
 #include <aria_common/logging.h>
+#include <gtsam/inference/VariableIndex.h>
+
+#include <opencv2/imgproc.hpp>
 
 #include "collection_adapters.hpp"
 
@@ -329,9 +332,132 @@ void VisualizerRerun::plotBenchmarkStats() {
         rerun::SeriesLine().with_color({color(0), color(1), color(2)}));
 
     // Log the stats
-    rec_->log("timing/" + label_with_index,
-              rerun::Scalar(stat.mean));
+    rec_->log("timing/" + label_with_index, rerun::Scalar(stat.mean));
   }
+}
+
+void VisualizerRerun::visualizeUncertainty2D(
+    const std::string& entity_path,
+    const std::vector<Point2>& mean,
+    const std::vector<Eigen::Matrix2d>& cov,
+    const Eigen::Vector4f& rgba,
+    bool is_static) {
+  static constexpr int kPlotWidth = 1080;
+  static constexpr int kPlotHeight = 720;
+
+  if (mean.empty() or cov.empty()) {
+    return;
+  }
+
+  // Find min and max points for x and y
+  auto [min_x_it, max_x_it] = std::minmax_element(
+      mean.begin(), mean.end(), [](const Point2& a, const Point2& b) {
+        return a.x() < b.x();
+      });
+  auto [min_y_it, max_y_it] = std::minmax_element(
+      mean.begin(), mean.end(), [](const Point2& a, const Point2& b) {
+        return a.y() < b.y();
+      });
+
+  int min_x = static_cast<int>(min_x_it->x());
+  int max_x = static_cast<int>(max_x_it->x());
+  int min_y = static_cast<int>(min_y_it->y());
+  int max_y = static_cast<int>(max_y_it->y());
+
+  float ratio = std::min(static_cast<float>(kPlotWidth) / (max_x - min_x),
+                         static_cast<float>(kPlotHeight) / (max_y - min_y));
+
+  cv::Mat img = cv::Mat::zeros(kPlotHeight, kPlotWidth, CV_8UC3);
+  std::vector<Point2> ellipse_points;
+  for (size_t i = 0; i < mean.size(); i++) {
+    auto [width, height, angle_rad] = getEllipseFromCov(cov[i]);
+    if (width <= 0 or height <= 0) {
+      continue;
+    }
+    width *= 4;
+    height *= 4;
+    try {
+      cv::ellipse(img,
+                  cv::Point2f((mean[i].x() - min_x) * ratio + width * ratio,
+                              kPlotHeight - (mean[i].y() - min_y) * ratio +
+                                  height * ratio),
+                  cv::Size(width * ratio, height * ratio),
+                  angle_rad * 180.0 / M_PI,
+                  0,
+                  360,
+                  cv::Scalar(rgba[0] * 255, rgba[1] * 255, rgba[2] * 255),
+                  1);
+    } catch (cv::Exception& e) {
+      spdlog::warn("VIZ: Failed to draw ellipse: {}", e.what());
+    }
+  }
+
+  // publish the image to rerun
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::Image::from_rgb24(img, {kPlotWidth, kPlotHeight}));
+}
+
+void VisualizerRerun::visualizeUncertainty2D(
+    const std::string& entity_path,
+    const std::vector<Point3>& mean,
+    const std::vector<Eigen::Matrix3d>& cov,
+    const Eigen::Vector4f& rgba,
+    bool is_static) {
+  std::vector<Point2> points;
+  std::vector<Eigen::Matrix2d> cov2d;
+  for (size_t i = 0; i < mean.size(); i++) {
+    points.push_back(Point2(mean[i].x(), mean[i].y()));
+    cov2d.push_back(cov[i].block<2, 2>(0, 0));
+  }
+
+  visualizeUncertainty2D(entity_path, points, cov2d, rgba, is_static);
+}
+
+void VisualizerRerun::visualizeUncertainty2D(
+    const std::string& entity_path,
+    const NonlinearFactorGraph& factors,
+    const Values& values,
+    const Eigen::Vector4f& rgba,
+    bool is_static) {
+  std::map<Key, Point2> points;
+  std::map<Key, Eigen::Matrix2d> cov;
+  VariableIndex vi(factors);
+  KeySet keys = factors.keys();
+  for (Key key : keys) {
+    auto vi_idx = vi.find(key);
+    if (vi_idx == vi.end()) {
+      continue;
+    }
+
+    auto pose = values.at<Pose3>(key);
+    points[key] = Point2(pose.x(), pose.y());
+
+    // read marginals from the factor
+    auto factor_idx = vi_idx->second;
+    CHECK_MSG(factor_idx.size() == 2, factor_idx.size());
+    CHECK(factor_idx.front() == factor_idx.back());
+    auto factor = factors.at(factor_idx[0]);
+    auto noise_factor = boost::dynamic_pointer_cast<NoiseModelFactor>(factor);
+    CHECK(noise_factor);
+
+    auto noise = noise_factor->noiseModel();
+    auto gaussian = boost::dynamic_pointer_cast<noiseModel::Gaussian>(noise);
+    CHECK(gaussian);
+
+    auto covariance = gaussian->covariance();
+    cov[key] = covariance.block<2, 2>(0, 0);
+  }
+
+  std::vector<Point2> points_vec;
+  std::vector<Eigen::Matrix2d> cov_vec;
+  for (const auto& [key, point] : points) {
+    points_vec.push_back(point);
+    cov_vec.push_back(cov[key]);
+  }
+
+  visualizeUncertainty2D(entity_path, points_vec, cov_vec, rgba, is_static);
 }
 
 }  // namespace aria::viz

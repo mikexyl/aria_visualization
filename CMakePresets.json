@@ -7,22 +7,36 @@
   },
   "configurePresets": [
     {
-      "name": "config",
+      "name": "config-Release",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
         "aria_common_DIR": "${sourceDir}/../aria_common/build",
-        "GTSAM_DIR": "/Users/mikexyl/Workspaces/deps/lib/cmake/GTSAM",
-        "rerun_sdk_DIR": "${sourceDir}/../rerun/install/lib/cmake/rerun_sdk"
+        "rerun_sdk_DIR": "${sourceDir}/../rerun/install/lib/cmake/rerun_sdk",
+        "GTSAM_DIR": "${sourceDir}/../gtsam/build/isam2_fast_marginal"
+      }
+    },
+    {
+      "name": "config-Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "inherits": "config-Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "build",
-      "configurePreset": "config",
+      "name": "build-Release",
+      "configurePreset": "config-Release",
+      "jobs": 12
+    },
+    {
+      "name": "build-Debug",
+      "configurePreset": "config-Debug",
       "jobs": 12
     }
   ]

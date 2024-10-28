@@ -1,11 +1,13 @@
 version: '3'
 
+vars:
+  profile: 'Release'
+
 tasks:
   build:
     cmds:
-      - cmake --preset config
-      - cmake --build --preset build
+      - cmake --preset config-{{.profile}}
+      - cmake --build --preset build-{{.profile}}
       # - sudo cmake --build --preset build --target install
     
-
 
