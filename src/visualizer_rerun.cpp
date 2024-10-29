@@ -365,27 +365,26 @@ void VisualizerRerun::visualizeUncertainty2D(
   int max_y = static_cast<int>(max_y_it->y());
 
   float ratio = std::min(static_cast<float>(kPlotWidth) / (max_x - min_x),
-                         static_cast<float>(kPlotHeight) / (max_y - min_y));
+                         static_cast<float>(kPlotHeight) / (max_y - min_y)) *
+                0.6;
 
-  cv::Mat img = cv::Mat::zeros(kPlotHeight, kPlotWidth, CV_8UC3);
+  cv::Mat img = cv::Mat::zeros(kPlotHeight, kPlotWidth, CV_8UC4);
   std::vector<Point2> ellipse_points;
   for (size_t i = 0; i < mean.size(); i++) {
     auto [width, height, angle_rad] = getEllipseFromCov(cov[i]);
     if (width <= 0 or height <= 0) {
       continue;
     }
-    width *= 4;
-    height *= 4;
     try {
       cv::ellipse(img,
-                  cv::Point2f((mean[i].x() - min_x) * ratio + width * ratio,
-                              kPlotHeight - (mean[i].y() - min_y) * ratio +
-                                  height * ratio),
+                  cv::Point2f((mean[i].x() - min_x) * ratio + kPlotWidth * 0.2,
+                              kPlotHeight - (mean[i].y() - min_y) * ratio -
+                                  kPlotHeight * 0.2),
                   cv::Size(width * ratio, height * ratio),
                   angle_rad * 180.0 / M_PI,
                   0,
                   360,
-                  cv::Scalar(rgba[0] * 255, rgba[1] * 255, rgba[2] * 255),
+                  cv::Scalar(rgba[0] * 255, rgba[1] * 255, rgba[2] * 255, 255),
                   1);
     } catch (cv::Exception& e) {
       spdlog::warn("VIZ: Failed to draw ellipse: {}", e.what());
@@ -396,7 +395,7 @@ void VisualizerRerun::visualizeUncertainty2D(
   rec_->log_with_static(
       entity_path,
       is_static,
-      rerun::Image::from_rgb24(img, {kPlotWidth, kPlotHeight}));
+      rerun::Image::from_rgba32(img, {kPlotWidth, kPlotHeight}));
 }
 
 void VisualizerRerun::visualizeUncertainty2D(
