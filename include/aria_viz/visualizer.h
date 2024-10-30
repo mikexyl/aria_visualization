@@ -176,7 +176,7 @@ class Visualizer {
       auto point = values.at<Pose3>(key);
       return Pose3(point).translation();
     } else {
-      LOG_FATAL("Not implemented for dim: " + std::to_string(dim));
+      LOG_FATAL("Not implemented for dim: {}", std::to_string(dim));
     }
   }
 

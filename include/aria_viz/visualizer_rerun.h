@@ -148,6 +148,13 @@ class VisualizerRerun : public Visualizer {
                               const Eigen::Vector4f& rgba,
                               bool is_static);
 
+  template <typename T>
+  void plotLabeledData(const std::string& entity_path, const T& data) {
+    for (const auto& [label, value] : data) {
+      rec_->log(entity_path + "/" + label, rerun::Scalar(value));
+    }
+  }
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,
