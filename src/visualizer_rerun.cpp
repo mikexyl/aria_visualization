@@ -174,7 +174,7 @@ void VisualizerRerun::visualizeFactors(const std::string& entity_path,
       continue;
     }
     auto keys = factor->keys();
-    CHECK_MSG(keys.size() <= 2,
+    CHECK(keys.size() <= 2,
               "Not implemented for factors with more than 2 keys");
 
     auto key = keys[0];
@@ -435,7 +435,7 @@ void VisualizerRerun::visualizeUncertainty2D(
 
     // read marginals from the factor
     auto factor_idx = vi_idx->second;
-    CHECK_MSG(factor_idx.size() == 2, factor_idx.size());
+    CHECK(factor_idx.size() == 2, factor_idx.size());
     CHECK(factor_idx.front() == factor_idx.back());
     auto factor = factors.at(factor_idx[0]);
     auto noise_factor = boost::dynamic_pointer_cast<NoiseModelFactor>(factor);

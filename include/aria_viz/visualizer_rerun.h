@@ -151,7 +151,9 @@ class VisualizerRerun : public Visualizer {
   template <typename T>
   void plotLabeledData(const std::string& entity_path, const T& data) {
     for (const auto& [label, value] : data) {
-      rec_->log(entity_path + "/" + label, rerun::Scalar(value));
+      std::stringstream ss;
+      ss << entity_path << "/" << label;
+      rec_->log(ss.str(), rerun::Scalar(static_cast<double>(value)));
     }
   }
 
