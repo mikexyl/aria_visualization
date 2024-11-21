@@ -16,6 +16,16 @@ find_package(rerun_sdk REQUIRED)
 find_package(SFML COMPONENTS graphics REQUIRED)
 find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
 
+# install TGUI by fetch content
+include(FetchContent)
+# set TGUI_BACKEND to SFML
+set(TGUI_BACKEND "SFML_GRAPHICS")
+FetchContent_Declare(
+  tgui
+  GIT_REPOSITORY https://github.com/texus/TGUI.git
+  GIT_TAG 1.x)
+FetchContent_MakeAvailable(tgui)
+
 set(INCLUDES
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -27,6 +37,7 @@ set(DEPENDENCIES
   aria_common
   sfml-graphics
   TBB::tbb TBB::tbbmalloc
+  tgui
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -53,6 +64,11 @@ add_subdirectory(tests)
 
 # Export rerun_sdk
 # export(EXPORT rerun_sdkTargets FILE _deps/rerun_sdk-build/rerun_sdkTargets.cmake)
+
+# export tgui
+export(TARGETS tgui
+  FILE _deps/tgui-build/tguiTargets.cmake
+)
 
 # Export the target for use in other projects
 export(TARGETS ${PROJECT_NAME}

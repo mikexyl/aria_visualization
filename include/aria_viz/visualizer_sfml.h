@@ -8,6 +8,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Sleep.hpp>
 #include <SFML/Window/Event.hpp>
+#include <TGUI/TGUI.hpp>
 #include <rerun.hpp>
 #include <stop_token>
 #include <thread>
@@ -102,6 +103,12 @@ class VisualizerSFML : public Visualizer {
     render_frame_ = true;
   }
 
+  void addButton(std::string text, std::function<void()> callback) {
+    tgui::Button::Ptr button = tgui::Button::create(text);
+    button->onPress(callback);
+    new_buttons_.push(button);
+  }
+
   void drawLinesImpl(const std::string& entity_path,
                      const std::vector<std::pair<Point3, Point3>>& points_pairs,
                      Eigen::Vector4f rgba,
@@ -129,6 +136,8 @@ class VisualizerSFML : public Visualizer {
 
   tbb::concurrent_queue<sf::Drawable*> drawables_;
   sf::Transform global_transform_;
+
+  tbb::concurrent_queue<tgui::Button::Ptr> new_buttons_;
 
   Params params_;
 };

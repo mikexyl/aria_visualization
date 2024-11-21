@@ -1,5 +1,8 @@
 #include "aria_viz/visualizer_sfml.h"
 
+#include <TGUI/Backend/SFML-Graphics.hpp>
+#include <TGUI/TGUI.hpp>
+
 namespace aria::viz {
 
 void VisualizerSFML::renderTask(std::stop_token stop_token) {
@@ -9,6 +12,8 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
   sf::RenderWindow window(sf::VideoMode(800, 600),
                           "VisualizerSFML",
                           sf::Style::Titlebar | sf::Style::Close);
+  tgui::Gui gui(window);
+
   window.setVerticalSyncEnabled(false);
 
   while (!stop_token.stop_requested() and not window.isOpen());
@@ -16,14 +21,14 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
   window_opened_ = true;
   sf::Clock frame_clock;
 
-  // create sprite of the render texture
-
   while (!stop_token.stop_requested()) {
     frame_ready_ = true;
     frame_clock.restart();
 
     sf::Event event;
     while (window.pollEvent(event)) {
+      gui.handleEvent(event);
+
       if (event.type == sf::Event::Closed or
           // or press esc
           (event.type == sf::Event::KeyPressed and
@@ -68,6 +73,12 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
         delete shape;
       }
 
+      tgui::Button::Ptr button;
+      while (new_buttons_.try_pop(button)) {
+        gui.add(button);
+      }
+
+      gui.draw();
       window.display();
     }
 
