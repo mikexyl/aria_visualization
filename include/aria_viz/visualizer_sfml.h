@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tbb/concurrent_queue.h>
+
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -25,12 +27,10 @@ class VisualizerSFML : public Visualizer {
    public:
     Params() {}
 
-    bool wait_for_first_image{true};
-    float sfml_fps{30};
+    float sfml_fps{60};
   };
 
   VisualizerSFML(Params params) : Visualizer(params), params_(params) {
-    render_texture_.create(800, 600);
     clear();
     render_thread_ = std::jthread(
         std::bind(&VisualizerSFML::renderTask, this, std::placeholders::_1));
@@ -46,20 +46,15 @@ class VisualizerSFML : public Visualizer {
                        const std::vector<Eigen::Vector4f>& rgba,
                        std::vector<float> radius,
                        bool is_static = false) override {
-    std::lock_guard<std::mutex> lock(render_mutex_);
     for (size_t i = 0; i < points.size(); i++) {
       sf::CircleShape circle(radius[i]);
-      circle.setFillColor(
-          sf::Color(rgba[i][0], rgba[i][1], rgba[i][2], rgba[i][3]));
+      circle.setFillColor(sf::Color::Black);
       circle.setPosition(points[i].x(), points[i].y());
-      render_texture_.draw(circle);
+      circles_.push(circle);
     }
   }
 
-  void clear() {
-    std::lock_guard<std::mutex> lock(render_mutex_);
-    render_texture_.clear(sf::Color::White);
-  }
+  void clear() { circles_.clear(); }
 
   void renderTask(std::stop_token stop_token) {
     float fps = params_.sfml_fps;
@@ -76,9 +71,9 @@ class VisualizerSFML : public Visualizer {
     sf::Clock frame_clock;
 
     // create sprite of the render texture
-    sf::Sprite sprite(render_texture_.getTexture());
 
     while (!stop_token.stop_requested()) {
+      frame_ready_ = true;
       frame_clock.restart();
 
       sf::Event event;
@@ -90,16 +85,20 @@ class VisualizerSFML : public Visualizer {
         }
       }
 
-      window.clear(sf::Color::White);
-      {
-        std::lock_guard<std::mutex> lock(render_mutex_);
-        window.draw(sprite);
-      }
+      if (render_frame_) {
+        render_frame_ = false;
+        window.clear(sf::Color::White);
+        sf::CircleShape circle;
+        while (circles_.try_pop(circle)) {
+          window.draw(circle);
+        }
 
-      window.display();
+        window.display();
+      }
 
       sf::Time elapsed_time = frame_clock.getElapsedTime();
       if (elapsed_time < target_frame_time) {
+        frame_ready_ = false;
         sf::sleep(target_frame_time - elapsed_time);
       }
     }
@@ -110,12 +109,20 @@ class VisualizerSFML : public Visualizer {
 
   bool windowOpened() const { return window_opened_; }
 
+  bool frameReady() const { return frame_ready_; }
+
+  void render() {
+    frame_ready_ = false;
+    render_frame_ = true;
+  }
+
  private:
   std::jthread render_thread_;
   std::atomic<bool> window_opened_{false};
+  std::atomic<bool> frame_ready_{true};
+  std::atomic<bool> render_frame_{false};
 
-  mutable std::mutex render_mutex_;
-  sf::RenderTexture render_texture_;
+  tbb::concurrent_queue<sf::CircleShape> circles_;
 
   Params params_;
 };
