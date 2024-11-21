@@ -30,6 +30,8 @@ class VisualizerSFML : public Visualizer {
   };
 
   VisualizerSFML(Params params) : Visualizer(params), params_(params) {
+    render_texture_.create(800, 600);
+    clear();
     render_thread_ = std::jthread(
         std::bind(&VisualizerSFML::renderTask, this, std::placeholders::_1));
   }
@@ -44,23 +46,24 @@ class VisualizerSFML : public Visualizer {
                        const std::vector<Eigen::Vector4f>& rgba,
                        std::vector<float> radius,
                        bool is_static = false) override {
-    VisualizerRerun::Pose3RendererSFML pose3_renderer_;
-    auto sf_image = pose3_renderer_.pointsToSfImage(points, rgba, radius);
-    std::lock_guard<std::mutex> lock(images_mutex_);
-    images_.push(sf_image);
-    std::cout << "image queue size: " << std::endl;
+    std::lock_guard<std::mutex> lock(render_mutex_);
+    for (size_t i = 0; i < points.size(); i++) {
+      sf::CircleShape circle(radius[i]);
+      circle.setFillColor(
+          sf::Color(rgba[i][0], rgba[i][1], rgba[i][2], rgba[i][3]));
+      circle.setPosition(points[i].x(), points[i].y());
+      render_texture_.draw(circle);
+    }
+  }
+
+  void clear() {
+    std::lock_guard<std::mutex> lock(render_mutex_);
+    render_texture_.clear(sf::Color::White);
   }
 
   void renderTask(std::stop_token stop_token) {
     float fps = params_.sfml_fps;
     const sf::Time target_frame_time = sf::seconds(1.0f / fps);
-
-    // wait until there is an image to render
-    while (!stop_token.stop_requested() and images_.empty() and
-           params_.wait_for_first_image) {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(target_frame_time.asMilliseconds()) / 2);
-    }
 
     sf::RenderWindow window(sf::VideoMode(800, 600),
                             "VisualizerSFML",
@@ -72,16 +75,13 @@ class VisualizerSFML : public Visualizer {
     window_opened_ = true;
     sf::Clock frame_clock;
 
+    // create sprite of the render texture
+    sf::Sprite sprite(render_texture_.getTexture());
+
     while (!stop_token.stop_requested()) {
-      std::cout << "draw image" << std::endl;
       frame_clock.restart();
 
-      std::cout << "1" << std::endl;
-      window.clear(sf::Color::White);
-      std::cout << "2" << std::endl;
-
       sf::Event event;
-      std::cout << "polling" << std::endl;
       while (window.pollEvent(event)) {
         if (event.type == sf::Event::Closed) {
           window.close();
@@ -90,20 +90,12 @@ class VisualizerSFML : public Visualizer {
         }
       }
 
-      std::cout << "trying to pop" << std::endl;
+      window.clear(sf::Color::White);
       {
-        std::lock_guard<std::mutex> lock(images_mutex_);
-        if (!images_.empty()) {
-          auto image = images_.front();
-          images_.pop();
-          sf::Texture texture;
-          texture.loadFromImage(image);
-          sf::Sprite sprite(texture);
-          window.draw(sprite);
-        }
+        std::lock_guard<std::mutex> lock(render_mutex_);
+        window.draw(sprite);
       }
 
-      std::cout << "trying to display" << std::endl;
       window.display();
 
       sf::Time elapsed_time = frame_clock.getElapsedTime();
@@ -118,17 +110,12 @@ class VisualizerSFML : public Visualizer {
 
   bool windowOpened() const { return window_opened_; }
 
-  bool frameFinished() const {
-    std::lock_guard<std::mutex> lock(images_mutex_);
-    return images_.empty();
-  }
-
  private:
   std::jthread render_thread_;
   std::atomic<bool> window_opened_{false};
 
-  mutable std::mutex images_mutex_;
-  std::queue<sf::Image> images_;
+  mutable std::mutex render_mutex_;
+  sf::RenderTexture render_texture_;
 
   Params params_;
 };
