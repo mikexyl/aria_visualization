@@ -33,4 +33,77 @@ const Eigen::Vector3f ColorMap::kBlack = Eigen::Vector3f(0, 0, 0);
 
 class Visualizer;
 
+void Visualizer::drawFactors(const std::string& entity_path,
+                             const NonlinearFactorGraph& factors,
+                             const Values& values,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool show_labels) {
+  std::vector<std::pair<Point3, Point3>> points;
+  std::vector<std::string> labels;
+  for (const auto& factor : factors) {
+    if (factor == nullptr) {
+      continue;
+    }
+    auto keys = factor->keys();
+    CHECK(keys.size() <= 2,
+          "Not implemented for factors with more than 2 keys");
+
+    auto key = keys[0];
+    std::optional<Point3> p0, p1;
+    if (keys.size() == 1) {
+      p0 = getPoint3(key, values);
+      if (p0.has_value()) p1 = *p0 + Point3(0, 0, 1.0);
+    } else {
+      p0 = getPoint3(keys[0], values);
+      p1 = getPoint3(keys[1], values);
+    }
+
+    if (p0.has_value() && p1.has_value()) {
+      points.emplace_back(*p0, *p1);
+      if (keys.size() == 2) {
+        labels.push_back(fmt::format(
+            "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+      } else {
+        labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+      }
+    }
+  }
+
+  drawLines(entity_path,
+            points,
+            rgba,
+            line_width,
+            show_labels ? labels : std::vector<std::string>{});
+}
+void Visualizer::drawPoints(const std::string& entity_path,
+                            const Values& values,
+                            const std::vector<Eigen::Vector4f>& rgba,
+                            std::vector<float> radius,
+                            bool is_static) {
+  std::vector<Point3> points;
+  // convert all values to points
+  for (const auto& [key, value] : values) {
+    if (auto point = getPoint3(key, values)) {
+      points.push_back(*point);
+    }
+  }
+
+  std::vector<Eigen::Vector4f> rgba_full;
+  if (rgba.size() == 1) {
+    rgba_full.resize(points.size(), rgba[0]);
+  } else {
+    rgba_full = rgba;
+  }
+
+  std::vector<float> radius_full;
+  if (radius.size() == 1) {
+    radius_full.resize(points.size(), radius[0]);
+  } else {
+    radius_full = radius;
+  }
+
+  drawPointsImpl(entity_path, points, rgba_full, radius_full, is_static);
+}
+
 }  // namespace aria::viz

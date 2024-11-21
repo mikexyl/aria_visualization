@@ -22,59 +22,7 @@ class VisualizerRerun : public Visualizer {
                         const std::vector<Eigen::Vector4f>& rgba,
                         std::vector<float> radius,
                         bool is_static) {
-      viz->visualizePoints(entity_path, points, rgba, radius, is_static);
-    }
-  };
-
-  struct Pose3RendererSFML : public Pose3Renderer {
-    void render(VisualizerRerun* viz,
-                const std::string& entity_path,
-                const std::vector<Point3>& points,
-                const std::vector<Eigen::Vector4f>& rgba,
-                std::vector<float> radius,
-                bool is_static) override {
-      sendImageToRerun(viz->rec(),
-                       entity_path,
-                       pointsToSfImage(points, rgba, radius),
-                       is_static);
-    }
-
-    sf::Image pointsToSfImage(const std::vector<Point3>& points,
-                              const std::vector<Eigen::Vector4f>& rgba,
-                              std::vector<float> radius) {
-      // render points to an image by sfml
-      sf::RenderTexture renderTexture;
-      CHECK(renderTexture.create(800, 600));
-
-      renderTexture.clear(sf::Color::White);
-
-      // Draw something simple
-      for (size_t i = 0; i < points.size(); i++) {
-        sf::CircleShape circle(radius[i]);
-        circle.setFillColor(
-            sf::Color(rgba[i][0], rgba[i][1], rgba[i][2], rgba[i][3]));
-        circle.setPosition(points[i].x(), points[i].y());
-        renderTexture.draw(circle);
-      }
-      renderTexture.display();
-
-      return renderTexture.getTexture().copyToImage();
-    }
-
-    void sendImageToRerun(rerun::RecordingStream* rec,
-                          std::string entity_path,
-                          const sf::Image& sfImage,
-                          bool is_static) {
-      // Extract the pixel data
-      const sf::Uint8* pixels = sfImage.getPixelsPtr();
-      sf::Vector2u size = sfImage.getSize();
-
-      // Log the image
-      rec->log_with_static(
-          entity_path,
-          is_static,
-          rerun::Image::from_rgba32(rerun::borrow(pixels, size.x * size.y * 4),
-                                    {size.x, size.y}));
+      viz->drawPointsImpl(entity_path, points, rgba, radius, is_static);
     }
   };
 
@@ -98,7 +46,6 @@ class VisualizerRerun : public Visualizer {
 
     std::string app_id;
     std::string recording_id;
-    std::shared_ptr<Pose3Renderer> pose3_renderer;
   };
 
   VisualizerRerun(Params params) : agent_id_(std::nullopt) {
@@ -107,7 +54,6 @@ class VisualizerRerun : public Visualizer {
     spdlog::info("Connecting to rerun server as app_id: {}, recording_id: {}",
                  params.app_id,
                  params.recording_id);
-    pose3_renderer_ = params.pose3_renderer;
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
     rec_->connect_tcp().exit_on_failure();
@@ -134,22 +80,12 @@ class VisualizerRerun : public Visualizer {
   static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
                                              const Eigen::Matrix2d& cov);
 
-  void connectPointsToPoints(
-      const std::string& entity_path,
-      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
-      float radius = 0.01f,
-      const std::vector<std::string>& labels = {}) override {
-    connectPointsToPoints(entity_path, points_pairs, rgba, radius, labels, {});
-  }
-
-  void connectPointsToPoints(
-      const std::string& entity_path,
-      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
-      float radius,
-      const std::vector<std::string>& labels,
-      const std::vector<std::string>& text);
+  void drawLines(const std::string& entity_path,
+                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                 Eigen::Vector4f rgba,
+                 float radius,
+                 const std::vector<std::string>& labels,
+                 const std::vector<std::string>& text) override;
 
   void visualizeUncertainty(const std::string& entity_path,
                             const Point2& mean,
@@ -163,33 +99,11 @@ class VisualizerRerun : public Visualizer {
                             const Eigen::Vector4f& rgba,
                             float line_width) override;
 
-  void visualizeFactors(const std::string& entity_path,
-                        const NonlinearFactorGraph& factors,
-                        const Values& values,
-                        const Eigen::Vector4f& rgba,
-                        float line_width,
-                        bool show_labels = false) override;
-
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const std::vector<Eigen::Vector4f>& rgba,
-                        float radius,
-                        bool is_static = false) override;
-
-  void visualizePoints(const std::string& entity_path,
-                       const std::vector<Point3>& points,
-                       const std::vector<Eigen::Vector4f>& rgba,
-                       std::vector<float> radius,
-                       bool is_static = false) override;
-
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const Eigen::Vector4f& rgba,
-                        float radius,
-                        bool is_static = false) {
-    return Visualizer::visualizePoints(
-        entity_path, points, rgba, radius, is_static);
-  }
+  void drawPointsImpl(const std::string& entity_path,
+                      const std::vector<Point3>& points,
+                      const std::vector<Eigen::Vector4f>& rgba,
+                      std::vector<float> radius,
+                      bool is_static = false) override;
 
   /**
    * @brief add spdlog messages to rerun at the given level

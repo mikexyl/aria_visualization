@@ -135,35 +135,67 @@ class Visualizer {
 
   void toggleStepByStep() { params_.step_by_step = !params_.step_by_step; }
 
-  virtual void connectPointsToPoints(
+  virtual void drawLines(
       const std::string& entity_path,
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
       Eigen::Vector4f rgba,
       float radius = 0.01f,
       const std::vector<std::string>& labels = {}) {}
 
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const Eigen::Vector4f& rgba,
-                        float radius,
-                        bool is_static = false) {
+  virtual void drawLines(
+      const std::string& entity_path,
+      const std::vector<std::pair<Point3, Point3>>& points_pairs,
+      Eigen::Vector4f rgba,
+      float radius,
+      const std::vector<std::string>& labels,
+      const std::vector<std::string>& text) {}
+
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const Eigen::Vector4f& rgba,
+                  float radius,
+                  bool is_static = false) {
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
-    return visualizePoints(entity_path, points, rgbs, radius, is_static);
+    drawPoints(entity_path, points, rgbs, radius, is_static);
   }
 
-  virtual float visualizePoints(const std::string& entity_path,
-                                const std::vector<Point3>& points,
-                                const std::vector<Eigen::Vector4f>& rgba,
-                                float radius,
-                                bool is_static = false) {
-    return 0.;
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  float radius,
+                  bool is_static = false) {
+    std::vector<float> radii(points.size(), radius);
+    drawPointsImpl(entity_path, points, rgba, radii, is_static);
   }
 
-  virtual void visualizePoints(const std::string& entity_path,
-                               const std::vector<Point3>& points,
-                               const std::vector<Eigen::Vector4f>& rgba,
-                               std::vector<float> radius,
-                               bool is_static = false) {}
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false) {
+    drawPointsImpl(entity_path, points, rgba, radius, is_static);
+  }
+
+  virtual void drawPointsImpl(const std::string& entity_path,
+                              const std::vector<Point3>& points,
+                              const std::vector<Eigen::Vector4f>& rgba,
+                              std::vector<float> radius,
+                              bool is_static = false) {}
+
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const Eigen::Vector4f& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false) {
+    std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
+    drawPointsImpl(entity_path, points, rgbs, radius, is_static);
+  }
+
+  void drawPoints(const std::string& entity_path,
+                  const Values& values,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false);
 
   static std::optional<Point3> getPoint3(const Key& key, const Values& values) {
     if (values.exists(key) == false) {
@@ -206,7 +238,7 @@ class Visualizer {
       }
     }
 
-    connectPointsToPoints(entity_path, points, rgba, radius);
+    drawLines(entity_path, points, rgba, radius);
   }
 
   template <typename ContainerT>
@@ -225,12 +257,12 @@ class Visualizer {
                                     const Eigen::Vector4f& rgba,
                                     float line_width) {}
 
-  virtual void visualizeFactors(const std::string& entity_path,
-                                const NonlinearFactorGraph& factors,
-                                const Values& values,
-                                const Eigen::Vector4f& rgba,
-                                float line_width,
-                                bool show_labels = false) {}
+  void drawFactors(const std::string& entity_path,
+                   const NonlinearFactorGraph& factors,
+                   const Values& values,
+                   const Eigen::Vector4f& rgba,
+                   float line_width,
+                   bool show_labels = false);
 
  protected:
   virtual void step() {

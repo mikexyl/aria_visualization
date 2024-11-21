@@ -9,3 +9,7 @@ target_link_libraries(sfml_to_rerun ${PROJECT_NAME})
 add_executable(sfml_animation sfml_animation_visualizer.cpp)
 target_include_directories(sfml_animation PRIVATE ${INCLUDES})
 target_link_libraries(sfml_animation ${PROJECT_NAME})
+
+add_executable(sfml_factor_graph sfml_factor_graph.cpp)
+target_include_directories(sfml_factor_graph PRIVATE ${INCLUDES})
+target_link_libraries(sfml_factor_graph ${PROJECT_NAME})

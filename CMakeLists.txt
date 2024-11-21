@@ -32,6 +32,7 @@ set(DEPENDENCIES
 add_library(${PROJECT_NAME} STATIC
   src/visualizer.cpp
   src/visualizer_rerun.cpp
+  src/visualizer_sfml.cpp
 )
 
 # Specify include directories

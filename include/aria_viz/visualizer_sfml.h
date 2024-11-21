@@ -8,14 +8,11 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Sleep.hpp>
 #include <SFML/Window/Event.hpp>
-#include <condition_variable>
-#include <queue>
 #include <rerun.hpp>
 #include <stop_token>
 #include <thread>
 
 #include "aria_viz/visualizer.h"
-#include "aria_viz/visualizer_rerun.h"
 
 namespace aria::viz {
 class VisualizerSFML : public Visualizer {
@@ -41,71 +38,28 @@ class VisualizerSFML : public Visualizer {
     render_thread_.join();
   }
 
-  void visualizePoints(const std::string& entity_path,
-                       const std::vector<Point3>& points,
-                       const std::vector<Eigen::Vector4f>& rgba,
-                       std::vector<float> radius,
-                       bool is_static = false) override {
+  void drawPointsImpl(const std::string& entity_path,
+                      const std::vector<Point3>& points,
+                      const std::vector<Eigen::Vector4f>& rgba,
+                      std::vector<float> radius,
+                      bool is_static = false) override {
     for (size_t i = 0; i < points.size(); i++) {
-      sf::CircleShape circle(radius[i]);
-      circle.setFillColor(sf::Color::Black);
-      circle.setPosition(points[i].x(), points[i].y());
-      circles_.push(circle);
+      sf::CircleShape* circle = new sf::CircleShape(radius[i]);
+      circle->setFillColor(sf::Color::Black);
+      circle->setPosition(points[i].x() - radius[i], points[i].y() - radius[i]);
+      drawables_.push(circle);
     }
   }
 
-  void clear() { circles_.clear(); }
-
-  void renderTask(std::stop_token stop_token) {
-    float fps = params_.sfml_fps;
-    const sf::Time target_frame_time = sf::seconds(1.0f / fps);
-
-    sf::RenderWindow window(sf::VideoMode(800, 600),
-                            "VisualizerSFML",
-                            sf::Style::Titlebar | sf::Style::Close);
-    window.setVerticalSyncEnabled(false);
-
-    while (!stop_token.stop_requested() and not window.isOpen());
-    window.clear(sf::Color::White);
-    window_opened_ = true;
-    sf::Clock frame_clock;
-
-    // create sprite of the render texture
-
-    while (!stop_token.stop_requested()) {
-      frame_ready_ = true;
-      frame_clock.restart();
-
-      sf::Event event;
-      while (window.pollEvent(event)) {
-        if (event.type == sf::Event::Closed) {
-          window.close();
-          window_opened_ = false;
-          return;
-        }
-      }
-
-      if (render_frame_) {
-        render_frame_ = false;
-        window.clear(sf::Color::White);
-        sf::CircleShape circle;
-        while (circles_.try_pop(circle)) {
-          window.draw(circle);
-        }
-
-        window.display();
-      }
-
-      sf::Time elapsed_time = frame_clock.getElapsedTime();
-      if (elapsed_time < target_frame_time) {
-        frame_ready_ = false;
-        sf::sleep(target_frame_time - elapsed_time);
-      }
+  void clear() {
+    // pop all shapes and delete
+    sf::Drawable* shape;
+    while (drawables_.try_pop(shape)) {
+      delete shape;
     }
-
-    window.close();
-    window_opened_ = false;
   }
+
+  void renderTask(std::stop_token stop_token);
 
   bool windowOpened() const { return window_opened_; }
 
@@ -116,13 +70,19 @@ class VisualizerSFML : public Visualizer {
     render_frame_ = true;
   }
 
+  void drawLines(const std::string& entity_path,
+                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                 Eigen::Vector4f rgba,
+                 float radius = 0.01f,
+                 const std::vector<std::string>& labels = {}) override;
+
  private:
   std::jthread render_thread_;
   std::atomic<bool> window_opened_{false};
   std::atomic<bool> frame_ready_{true};
   std::atomic<bool> render_frame_{false};
 
-  tbb::concurrent_queue<sf::CircleShape> circles_;
+  tbb::concurrent_queue<sf::Drawable*> drawables_;
 
   Params params_;
 };

@@ -46,7 +46,7 @@ void VisualizerRerun::connectPositions3D(
                 .with_labels(labels));
 }
 
-void VisualizerRerun::connectPointsToPoints(
+void VisualizerRerun::drawLines(
     const std::string& entity_path,
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
     Eigen::Vector4f rgba,
@@ -61,45 +61,7 @@ void VisualizerRerun::connectPointsToPoints(
   connectPositions3D(entity_path, positions, rgba, radius, labels, false, text);
 }
 
-float VisualizerRerun::visualizePoints(const std::string& entity_path,
-                                       const std::vector<Point3>& points,
-                                       const std::vector<Eigen::Vector4f>& rgba,
-                                       float radius,
-                                       bool is_static) {
-  if (radius < 0.0) {
-    // when radius set negative, use adaptive radius
-    float range_x[2] = {std::numeric_limits<float>::max(),
-                        std::numeric_limits<float>::min()};
-    float range_y[2] = {std::numeric_limits<float>::max(),
-                        std::numeric_limits<float>::min()};
-    float range_z[2] = {std::numeric_limits<float>::max(),
-                        std::numeric_limits<float>::min()};
-
-    for (const auto& point : points) {
-      range_x[0] = std::fmin(range_x[0], point.x());
-      range_x[1] = std::fmax(range_x[1], point.x());
-      range_y[0] = std::fmin(range_y[0], point.y());
-      range_y[1] = std::fmax(range_y[1], point.y());
-      range_z[0] = std::fmin(range_z[0], point.z());
-      range_z[1] = std::fmax(range_z[1], point.z());
-    }
-
-    float diff_x = range_x[1] - range_x[0], diff_y = range_y[1] - range_y[0],
-          diff_z = range_z[1] - range_z[0];
-
-    // use the max diff and times 1e-4
-    radius = std::max({diff_x, diff_y, diff_z}) * 2e-3;
-    radius = std::min(radius, 1.0f);
-  }
-
-  std::vector<float> radii(points.size(), radius);
-
-  pose3_renderer_->render(this, entity_path, points, rgba, radii, is_static);
-
-  return radius;
-}
-
-void VisualizerRerun::visualizePoints(const std::string& entity_path,
+void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
                                       const std::vector<Point3>& points,
                                       const std::vector<Eigen::Vector4f>& rgba,
                                       std::vector<float> radius,
@@ -159,50 +121,6 @@ void VisualizerRerun::visualizeUncertainty(const std::string& entity_path,
                      rerun::RotationAxisAngle(
                          {0, 0, 1}, rerun::Angle::radians(ellipse[5]))})
                 .with_line_radii(line_width));
-}
-
-void VisualizerRerun::visualizeFactors(const std::string& entity_path,
-                                       const NonlinearFactorGraph& factors,
-                                       const Values& values,
-                                       const Eigen::Vector4f& rgba,
-                                       float line_width,
-                                       bool show_labels) {
-  std::vector<std::pair<Point3, Point3>> points;
-  std::vector<std::string> labels;
-  for (const auto& factor : factors) {
-    if (factor == nullptr) {
-      continue;
-    }
-    auto keys = factor->keys();
-    CHECK(keys.size() <= 2,
-          "Not implemented for factors with more than 2 keys");
-
-    auto key = keys[0];
-    std::optional<Point3> p0, p1;
-    if (keys.size() == 1) {
-      p0 = getPoint3(key, values);
-      if (p0.has_value()) p1 = *p0 + Point3(0, 0, 1.0);
-    } else {
-      p0 = getPoint3(keys[0], values);
-      p1 = getPoint3(keys[1], values);
-    }
-
-    if (p0.has_value() && p1.has_value()) {
-      points.emplace_back(*p0, *p1);
-      if (keys.size() == 2) {
-        labels.push_back(fmt::format(
-            "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
-      } else {
-        labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
-      }
-    }
-  }
-
-  connectPointsToPoints(entity_path,
-                        points,
-                        rgba,
-                        line_width,
-                        show_labels ? labels : std::vector<std::string>{});
 }
 
 std::tuple<double, double, double> VisualizerRerun::getEllipseFromCov(
