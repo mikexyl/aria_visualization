@@ -24,10 +24,37 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
 
     sf::Event event;
     while (window.pollEvent(event)) {
-      if (event.type == sf::Event::Closed) {
+      if (event.type == sf::Event::Closed or
+          // or press esc
+          (event.type == sf::Event::KeyPressed and
+           event.key.code == sf::Keyboard::Escape)) {
         window.close();
         window_opened_ = false;
         return;
+      }
+    }
+
+    if (event.type == sf::Event::KeyPressed) {
+      std::cout << "key pressed: " << event.key.code << std::endl;
+      switch (event.key.code) {
+        case sf::Keyboard::W:
+          global_transform_ =
+              global_transform_ * sf::Transform().translate(0, -10);
+          break;
+        case sf::Keyboard::S:
+          global_transform_ =
+              global_transform_ * sf::Transform().translate(0, 10);
+          break;
+        case sf::Keyboard::A:
+          global_transform_ =
+              global_transform_ * sf::Transform().translate(-10, 0);
+          break;
+        case sf::Keyboard::D:
+          global_transform_ =
+              global_transform_ * sf::Transform().translate(10, 0);
+          break;
+        default:
+          break;
       }
     }
 
@@ -35,8 +62,9 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
       render_frame_ = false;
       window.clear(sf::Color::White);
       sf::Drawable* shape;
+      sf::RenderStates states(global_transform_);
       while (drawables_.try_pop(shape)) {
-        window.draw(*shape);
+        window.draw(*shape, states);
         delete shape;
       }
 

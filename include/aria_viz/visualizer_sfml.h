@@ -29,6 +29,7 @@ class VisualizerSFML : public Visualizer {
 
   VisualizerSFML(Params params) : Visualizer(params), params_(params) {
     clear();
+    global_transform_ = sf::Transform::Identity;
     render_thread_ = std::jthread(
         std::bind(&VisualizerSFML::renderTask, this, std::placeholders::_1));
   }
@@ -96,6 +97,7 @@ class VisualizerSFML : public Visualizer {
   std::atomic<bool> render_frame_{false};
 
   tbb::concurrent_queue<sf::Drawable*> drawables_;
+  sf::Transform global_transform_;
 
   Params params_;
 };
