@@ -82,12 +82,13 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
   window_opened_ = false;
 }
 
-void VisualizerSFML::drawLines(
+void VisualizerSFML::drawLinesImpl(
     const std::string& entity_path,
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
     Eigen::Vector4f rgba,
     float radius,
-    const std::vector<std::string>& labels) {
+    const std::vector<std::string>& labels,
+    const std::vector<std::string>& text) {
   for (const auto& [p0, p1] : points_pairs) {
     sf::VertexArray* line = new sf::VertexArray(sf::LinesStrip, 2);
     (*line)[0].position = sf::Vector2f(p0.x(), p0.y());

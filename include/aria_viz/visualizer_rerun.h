@@ -15,17 +15,6 @@ class VisualizerRerun : public Visualizer {
   ARIA_DELETE_COPY_CONSTRUCTORS(VisualizerRerun);
   ARIA_POINTER_TYPEDEFS(VisualizerRerun);
 
-  struct Pose3Renderer {
-    virtual void render(VisualizerRerun* viz,
-                        const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const std::vector<Eigen::Vector4f>& rgba,
-                        std::vector<float> radius,
-                        bool is_static) {
-      viz->drawPointsImpl(entity_path, points, rgba, radius, is_static);
-    }
-  };
-
   class Params : public Visualizer::Params {
    public:
     Params(std::optional<std::string> app_id = std::nullopt,
@@ -74,7 +63,7 @@ class VisualizerRerun : public Visualizer {
 
   static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
-  void drawLines(const std::string& entity_path,
+  void drawLinesImpl(const std::string& entity_path,
                  const std::vector<std::pair<Point3, Point3>>& points_pairs,
                  Eigen::Vector4f rgba,
                  float radius,
@@ -131,8 +120,6 @@ class VisualizerRerun : public Visualizer {
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;
-
-  std::shared_ptr<Pose3Renderer> pose3_renderer_;
 
   std::optional<AgentId> agent_id_;
 };

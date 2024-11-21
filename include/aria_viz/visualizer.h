@@ -135,14 +135,16 @@ class Visualizer {
 
   void toggleStepByStep() { params_.step_by_step = !params_.step_by_step; }
 
-  virtual void drawLines(
-      const std::string& entity_path,
-      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
-      float radius = 0.01f,
-      const std::vector<std::string>& labels = {}) {}
+  void drawLines(const std::string& entity_path,
+                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                 Eigen::Vector4f rgba,
+                 float radius,
+                 const std::vector<std::string>& labels = {},
+                 const std::vector<std::string>& text = {}) {
+    drawLinesImpl(entity_path, points_pairs, rgba, radius, labels, text);
+  }
 
-  virtual void drawLines(
+  virtual void drawLinesImpl(
       const std::string& entity_path,
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
       Eigen::Vector4f rgba,
@@ -280,6 +282,20 @@ class Visualizer {
                        float line_width) {
     drawUncertaintyImpl3D(
         entity_path, mean, getEllipseFromCov(cov), rgba, line_width);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const std::vector<Point3>& mean,
+                       const std::vector<Eigen::Matrix3d>& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width) {
+    for (size_t i = 0; i < mean.size(); i++) {
+      drawUncertainty(entity_path + "/" + std::to_string(i),
+                      mean[i],
+                      cov[i],
+                      rgba,
+                      line_width);
+    }
   }
 
   virtual void drawUncertaintyImpl2D(const std::string& entity_path,

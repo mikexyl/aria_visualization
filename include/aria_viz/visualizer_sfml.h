@@ -27,7 +27,7 @@ class VisualizerSFML : public Visualizer {
     float sfml_fps{60};
   };
 
-  VisualizerSFML(Params params) : Visualizer(params), params_(params) {
+  VisualizerSFML(Params params = {}) : Visualizer(params), params_(params) {
     clear();
     global_transform_ = sf::Transform::Identity;
     render_thread_ = std::jthread(
@@ -67,16 +67,47 @@ class VisualizerSFML : public Visualizer {
 
   bool frameReady() const { return frame_ready_; }
 
+  bool waitForWindowClose(
+      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) {
+    auto start = std::chrono::system_clock::now();
+    while (window_opened_) {
+      if (timeout.count() > 0) {
+        auto now = std::chrono::system_clock::now();
+        if (now - start > timeout) {
+          return false;
+        }
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return true;
+  }
+
+  bool waitForWindowOpen(
+      std::chrono::milliseconds timeout = std::chrono::milliseconds(0)) {
+    auto start = std::chrono::system_clock::now();
+    while (not window_opened_) {
+      if (timeout.count() > 0) {
+        auto now = std::chrono::system_clock::now();
+        if (now - start > timeout) {
+          return false;
+        }
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return true;
+  }
+
   void render() {
     frame_ready_ = false;
     render_frame_ = true;
   }
 
-  void drawLines(const std::string& entity_path,
-                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
-                 Eigen::Vector4f rgba,
-                 float radius = 0.01f,
-                 const std::vector<std::string>& labels = {}) override;
+  void drawLinesImpl(const std::string& entity_path,
+                     const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                     Eigen::Vector4f rgba,
+                     float radius,
+                     const std::vector<std::string>& labels,
+                     const std::vector<std::string>& text) override;
 
   void drawUncertaintyImpl2D(const std::string& entity_path,
                              const Point2& mean,

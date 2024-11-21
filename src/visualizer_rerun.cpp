@@ -46,7 +46,7 @@ void VisualizerRerun::connectPositions3D(
                 .with_labels(labels));
 }
 
-void VisualizerRerun::drawLines(
+void VisualizerRerun::drawLinesImpl(
     const std::string& entity_path,
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
     Eigen::Vector4f rgba,
