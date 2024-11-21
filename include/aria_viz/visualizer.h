@@ -245,17 +245,54 @@ class Visualizer {
   void visualizeGTCameraPoses(const std::string& entity_path,
                               const ContainerT& frames);
 
-  virtual void visualizeUncertainty(const std::string& entity_path,
-                                    const Point2& mean,
-                                    const Eigen::Matrix2d& cov,
-                                    const Eigen::Vector4f& rgba,
-                                    float line_width) {}
+  static std::vector<double> getEllipseFromCov(const Eigen::Matrix2d& cov);
+  static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
-  virtual void visualizeUncertainty(const std::string& entity_path,
-                                    const Point3& mean,
-                                    const Eigen::Matrix3d& cov,
-                                    const Eigen::Vector4f& rgba,
-                                    float line_width) {}
+  void drawUncertainty(const std::string& entity_path,
+                       const Pose2& mean,
+                       const Eigen::Matrix2d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width) {
+    drawUncertainty(entity_path, mean.translation(), cov, rgba, line_width);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const Point2& mean,
+                       const Eigen::Matrix2d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width) {
+    drawUncertaintyImpl2D(
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const Pose3& mean,
+                       const Eigen::Matrix3d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width) {
+    drawUncertainty(entity_path, mean.translation(), cov, rgba, line_width);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const Point3& mean,
+                       const Eigen::Matrix3d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width) {
+    drawUncertaintyImpl3D(
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width);
+  }
+
+  virtual void drawUncertaintyImpl2D(const std::string& entity_path,
+                                     const Point2& mean,
+                                     const std::vector<double>& ellipse,
+                                     const Eigen::Vector4f& rgba,
+                                     float line_width) {}
+
+  virtual void drawUncertaintyImpl3D(const std::string& entity_path,
+                                     const Point3& mean,
+                                     const std::vector<double>& ellipse,
+                                     const Eigen::Vector4f& rgba,
+                                     float line_width) {}
 
   void drawFactors(const std::string& entity_path,
                    const NonlinearFactorGraph& factors,

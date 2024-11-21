@@ -106,4 +106,47 @@ void Visualizer::drawPoints(const std::string& entity_path,
   drawPointsImpl(entity_path, points, rgba_full, radius_full, is_static);
 }
 
+std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix2d& cov) {
+  // Compute the eigenvalues and eigenvectors
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(cov);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Failed to compute eigenvalues and eigenvectors." << std::endl;
+    return {};
+  }
+
+  // Eigenvalues are the lengths of the ellipse's axes
+  Eigen::Vector2d eigenvalues = eigensolver.eigenvalues();
+  double width = std::sqrt(eigenvalues(0)) * 4;
+  double height = std::sqrt(eigenvalues(1)) * 4;
+
+  // Eigenvectors are the directions of the ellipse's axes
+  Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
+  double angle_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+
+  return {width, height, angle_rad};
+}
+
+std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix3d& cov) {
+  // Compute the eigenvalues and eigenvectors
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(cov);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Failed to compute eigenvalues and eigenvectors." << std::endl;
+    return {};
+  }
+
+  // Eigenvalues are the lengths of the ellipse's axes
+  Eigen::Vector3d eigenvalues = eigensolver.eigenvalues();
+  double x = std::sqrt(eigenvalues(0)) * 2;
+  double y = std::sqrt(eigenvalues(1)) * 2;
+  double z = std::sqrt(eigenvalues(2)) * 2;
+
+  // Eigenvectors are the directions of the ellipse's axes
+  Eigen::Matrix3d eigenvectors = eigensolver.eigenvectors();
+  double angle_x_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+  double angle_y_rad = std::atan2(eigenvectors(2, 1), eigenvectors(1, 1));
+  double angle_z_rad = std::atan2(eigenvectors(0, 2), eigenvectors(1, 2));
+
+  return {x, y, z, angle_x_rad, angle_y_rad, angle_z_rad};
+}
+
 }  // namespace aria::viz

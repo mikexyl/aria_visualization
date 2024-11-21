@@ -70,4 +70,31 @@ void VisualizerSFML::drawLines(
   }
 }
 
+void VisualizerSFML::drawUncertaintyImpl2D(const std::string& entity_path,
+                                           const Point2& mean,
+                                           const std::vector<double>& ellipse,
+                                           const Eigen::Vector4f& rgba,
+                                           float line_width) {
+  double width = ellipse[0], height = ellipse[1], angle = ellipse[5];
+  sf::CircleShape* circle = new sf::CircleShape(width);
+  circle->setScale(1.0, height / width);
+  circle->setFillColor(sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]));
+  circle->setRotation(angle);
+  circle->setPosition(mean.x() - width, mean.y() - height);
+  drawables_.push(circle);
+}
+
+void VisualizerSFML::drawUncertaintyImpl3D(const std::string& entity_path,
+                                           const Point3& mean,
+                                           const std::vector<double>& ellipse,
+                                           const Eigen::Vector4f& rgba,
+                                           float line_width) {
+  Point2 mean2d(mean.x(), mean.y());
+  drawUncertaintyImpl2D(entity_path,
+                        mean2d,
+                        {ellipse[0], ellipse[1], ellipse[5]},
+                        rgba,
+                        line_width);
+}
+
 }  // namespace aria::viz

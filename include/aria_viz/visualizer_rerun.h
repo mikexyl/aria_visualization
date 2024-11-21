@@ -74,12 +74,6 @@ class VisualizerRerun : public Visualizer {
 
   static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
-  static std::tuple<double, double, double> getEllipseFromCov(
-      const Eigen::Matrix2d& cov);
-
-  static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
-                                             const Eigen::Matrix2d& cov);
-
   void drawLines(const std::string& entity_path,
                  const std::vector<std::pair<Point3, Point3>>& points_pairs,
                  Eigen::Vector4f rgba,
@@ -87,17 +81,17 @@ class VisualizerRerun : public Visualizer {
                  const std::vector<std::string>& labels,
                  const std::vector<std::string>& text) override;
 
-  void visualizeUncertainty(const std::string& entity_path,
-                            const Point2& mean,
-                            const Eigen::Matrix2d& cov,
-                            const Eigen::Vector4f& rgba,
-                            float line_width) override;
+  void drawUncertaintyImpl2D(const std::string& entity_path,
+                             const Point2& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width) override;
 
-  void visualizeUncertainty(const std::string& entity_path,
-                            const Point3& mean,
-                            const Eigen::Matrix3d& cov,
-                            const Eigen::Vector4f& rgba,
-                            float line_width) override;
+  void drawUncertaintyImpl3D(const std::string& entity_path,
+                             const Point3& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width) override;
 
   void drawPointsImpl(const std::string& entity_path,
                       const std::vector<Point3>& points,
@@ -115,24 +109,6 @@ class VisualizerRerun : public Visualizer {
   rerun::RecordingStream* rec() { return rec_.get(); }
 
   void plotBenchmarkStats();
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const std::vector<Point2>& mean,
-                              const std::vector<Eigen::Matrix2d>& cov,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const std::vector<Point3>& mean,
-                              const std::vector<Eigen::Matrix3d>& cov,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const NonlinearFactorGraph& factors,
-                              const Values& values,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
 
   template <typename T>
   void plotLabeledData(const std::string& entity_path, const T& data) {

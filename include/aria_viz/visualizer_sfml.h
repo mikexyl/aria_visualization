@@ -45,7 +45,8 @@ class VisualizerSFML : public Visualizer {
                       bool is_static = false) override {
     for (size_t i = 0; i < points.size(); i++) {
       sf::CircleShape* circle = new sf::CircleShape(radius[i]);
-      circle->setFillColor(sf::Color::Black);
+      circle->setFillColor(
+          sf::Color(rgba[i].x(), rgba[i].y(), rgba[i].z(), rgba[i].w()));
       circle->setPosition(points[i].x() - radius[i], points[i].y() - radius[i]);
       drawables_.push(circle);
     }
@@ -75,6 +76,18 @@ class VisualizerSFML : public Visualizer {
                  Eigen::Vector4f rgba,
                  float radius = 0.01f,
                  const std::vector<std::string>& labels = {}) override;
+
+  void drawUncertaintyImpl2D(const std::string& entity_path,
+                             const Point2& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width) override;
+
+  void drawUncertaintyImpl3D(const std::string& entity_path,
+                             const Point3& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width) override;
 
  private:
   std::jthread render_thread_;
