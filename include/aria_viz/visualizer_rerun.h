@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 #include <rerun.hpp>
 
 #include "aria_viz/visualizer.h"
@@ -12,6 +14,69 @@ class VisualizerRerun : public Visualizer {
  public:
   ARIA_DELETE_COPY_CONSTRUCTORS(VisualizerRerun);
   ARIA_POINTER_TYPEDEFS(VisualizerRerun);
+
+  struct Pose3Renderer {
+    virtual void render(VisualizerRerun* viz,
+                        const std::string& entity_path,
+                        const std::vector<Point3>& points,
+                        const std::vector<Eigen::Vector4f>& rgba,
+                        std::vector<float> radius,
+                        bool is_static) {
+      viz->visualizePoints(entity_path, points, rgba, radius, is_static);
+    }
+  };
+
+  struct Pose3RendererSFML : public Pose3Renderer {
+    void render(VisualizerRerun* viz,
+                const std::string& entity_path,
+                const std::vector<Point3>& points,
+                const std::vector<Eigen::Vector4f>& rgba,
+                std::vector<float> radius,
+                bool is_static) override {
+      sendImageToRerun(viz->rec(),
+                       entity_path,
+                       pointsToSfImage(points, rgba, radius),
+                       is_static);
+    }
+
+    sf::Image pointsToSfImage(const std::vector<Point3>& points,
+                              const std::vector<Eigen::Vector4f>& rgba,
+                              std::vector<float> radius) {
+      // render points to an image by sfml
+      sf::RenderTexture renderTexture;
+      CHECK(renderTexture.create(800, 600));
+
+      renderTexture.clear(sf::Color::White);
+
+      // Draw something simple
+      for (size_t i = 0; i < points.size(); i++) {
+        sf::CircleShape circle(radius[i]);
+        circle.setFillColor(
+            sf::Color(rgba[i][0], rgba[i][1], rgba[i][2], rgba[i][3]));
+        circle.setPosition(points[i].x(), points[i].y());
+        renderTexture.draw(circle);
+      }
+      renderTexture.display();
+
+      return renderTexture.getTexture().copyToImage();
+    }
+
+    void sendImageToRerun(rerun::RecordingStream* rec,
+                          std::string entity_path,
+                          const sf::Image& sfImage,
+                          bool is_static) {
+      // Extract the pixel data
+      const sf::Uint8* pixels = sfImage.getPixelsPtr();
+      sf::Vector2u size = sfImage.getSize();
+
+      // Log the image
+      rec->log_with_static(
+          entity_path,
+          is_static,
+          rerun::Image::from_rgba32(rerun::borrow(pixels, size.x * size.y * 4),
+                                    {size.x, size.y}));
+    }
+  };
 
   class Params : public Visualizer::Params {
    public:
@@ -30,8 +95,10 @@ class VisualizerRerun : public Visualizer {
         this->app_id = this->recording_id;
       }
     }
+
     std::string app_id;
     std::string recording_id;
+    std::shared_ptr<Pose3Renderer> pose3_renderer;
   };
 
   VisualizerRerun(Params params) : agent_id_(std::nullopt) {
@@ -40,10 +107,10 @@ class VisualizerRerun : public Visualizer {
     spdlog::info("Connecting to rerun server as app_id: {}, recording_id: {}",
                  params.app_id,
                  params.recording_id);
+    pose3_renderer_ = params.pose3_renderer;
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-    error_ = rec_->connect();
-    error_.exit_on_failure();
+    rec_->connect_tcp().exit_on_failure();
 
     rec_->log_static(
         "map",
@@ -51,6 +118,11 @@ class VisualizerRerun : public Visualizer {
   }
 
   virtual ~VisualizerRerun() {}
+
+  template <typename... Args>
+  void setTime(Args... args) {
+    rec_->set_time(args...);
+  }
 
   void setTimeNSec(size_t timestamp) override;
 
@@ -126,7 +198,7 @@ class VisualizerRerun : public Visualizer {
    */
   void addSpdlogToRerun(spdlog::level::level_enum level);
 
-  auto rec() { return rec_.get(); }
+  rerun::RecordingStream* rec() { return rec_.get(); }
 
   void plotBenchmarkStats();
 
@@ -169,7 +241,8 @@ class VisualizerRerun : public Visualizer {
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;
-  rerun::Error error_;
+
+  std::shared_ptr<Pose3Renderer> pose3_renderer_;
 
   std::optional<AgentId> agent_id_;
 };

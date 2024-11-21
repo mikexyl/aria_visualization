@@ -87,6 +87,7 @@ class Visualizer {
     bool tracking_side_by_side{false};
     bool step_by_step{false};
     bool visualize_ba_edges{false};
+    std::string app_name{"ARIA Visualizer"};
 
     bool any_visualization_enabled() const {
       return visualize_keypoints || visualize_landmarks_2d_tracking ||

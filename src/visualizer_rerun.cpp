@@ -94,7 +94,7 @@ float VisualizerRerun::visualizePoints(const std::string& entity_path,
 
   std::vector<float> radii(points.size(), radius);
 
-  visualizePoints(entity_path, points, rgba, radii, is_static);
+  pose3_renderer_->render(this, entity_path, points, rgba, radii, is_static);
 
   return radius;
 }
@@ -175,7 +175,7 @@ void VisualizerRerun::visualizeFactors(const std::string& entity_path,
     }
     auto keys = factor->keys();
     CHECK(keys.size() <= 2,
-              "Not implemented for factors with more than 2 keys");
+          "Not implemented for factors with more than 2 keys");
 
     auto key = keys[0];
     std::optional<Point3> p0, p1;
