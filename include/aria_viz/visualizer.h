@@ -43,11 +43,11 @@ struct ColorMap {
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 
-  static const Eigen::Vector3f kGreen;
-  static const Eigen::Vector3f kRed;
-  static const Eigen::Vector3f kBlue;
-  static const Eigen::Vector3f kGray;
-  static const Eigen::Vector3f kBlack;
+  static const Eigen::Vector4f kGreen;
+  static const Eigen::Vector4f kRed;
+  static const Eigen::Vector4f kBlue;
+  static const Eigen::Vector4f kGray;
+  static const Eigen::Vector4f kBlack;
 };
 
 struct AgentColorMap : public ColorMap {
@@ -66,6 +66,14 @@ struct AgentColorMap : public ColorMap {
     auto color0 = color_map[agent0];
     auto color1 = color_map[agent1];
     auto color = (color0 + color1) / 2;
+    return Eigen::Vector4f(color(0), color(1), color(2), alpha);
+  }
+
+  static Eigen::Vector4f get(AgentId agent_id, float alpha) {
+    if (color_map.find(agent_id) == color_map.end()) {
+      color_map[agent_id] = random();
+    }
+    auto color = color_map[agent_id];
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 };

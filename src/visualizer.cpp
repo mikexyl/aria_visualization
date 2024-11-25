@@ -25,11 +25,11 @@ std::map<int, Eigen::Vector3f> AgentColorMap::color_map = {
     {19, Eigen::Vector3f(0, 64, 64)},
     {20, Eigen::Vector3f(64, 64, 64)}};
 
-const Eigen::Vector3f ColorMap::kGreen = Eigen::Vector3f(0, 255, 0);
-const Eigen::Vector3f ColorMap::kRed = Eigen::Vector3f(255, 0, 0);
-const Eigen::Vector3f ColorMap::kBlue = Eigen::Vector3f(0, 0, 255);
-const Eigen::Vector3f ColorMap::kGray = Eigen::Vector3f(128, 128, 128);
-const Eigen::Vector3f ColorMap::kBlack = Eigen::Vector3f(0, 0, 0);
+const Eigen::Vector4f ColorMap::kGreen = Eigen::Vector4f(0, 255, 0, 255);
+const Eigen::Vector4f ColorMap::kRed = Eigen::Vector4f(255, 0, 0, 255);
+const Eigen::Vector4f ColorMap::kBlue = Eigen::Vector4f(0, 0, 255, 255);
+const Eigen::Vector4f ColorMap::kGray = Eigen::Vector4f(128, 128, 128, 255);
+const Eigen::Vector4f ColorMap::kBlack = Eigen::Vector4f(0, 0, 0, 255);
 
 class Visualizer;
 

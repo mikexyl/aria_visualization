@@ -14,6 +14,13 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
                           sf::Style::Titlebar | sf::Style::Close);
   tgui::Gui gui(window);
 
+  // Create a panel to act as a container
+  auto panel = tgui::Panel::create();
+  panel->setPosition(0, 0);  // Set position of the panel
+  panel->setSize(50, 100);   // Set size of the panel
+  panel->add(tgui_vertical_layout_);
+  gui.add(panel);
+
   window.setVerticalSyncEnabled(false);
 
   while (!stop_token.stop_requested() and not window.isOpen());
@@ -40,7 +47,6 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
     }
 
     if (event.type == sf::Event::KeyPressed) {
-      std::cout << "key pressed: " << event.key.code << std::endl;
       switch (event.key.code) {
         case sf::Keyboard::W:
           global_transform_ =
@@ -75,7 +81,7 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
 
       tgui::Button::Ptr button;
       while (new_buttons_.try_pop(button)) {
-        gui.add(button);
+        tgui_vertical_layout_->add(button);
       }
 
       gui.draw();
@@ -115,7 +121,9 @@ void VisualizerSFML::drawUncertaintyImpl2D(const std::string& entity_path,
                                            const std::vector<double>& ellipse,
                                            const Eigen::Vector4f& rgba,
                                            float line_width) {
-  double width = ellipse[0], height = ellipse[1], angle = ellipse[5];
+  static constexpr float kEllipseSizeNSigma = 1.0;
+  double width = ellipse[0] * kEllipseSizeNSigma,
+         height = ellipse[1] * kEllipseSizeNSigma, angle = ellipse[2];
   sf::CircleShape* circle = new sf::CircleShape(width);
   circle->setScale(1.0, height / width);
   circle->setFillColor(sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]));

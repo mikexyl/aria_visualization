@@ -31,6 +31,9 @@ class VisualizerSFML : public Visualizer {
   VisualizerSFML(Params params = {}) : Visualizer(params), params_(params) {
     clear();
     global_transform_ = sf::Transform::Identity;
+    tgui_vertical_layout_ = tgui::VerticalLayout::create();
+    tgui_vertical_layout_->setPosition(0, 0);
+    tgui_vertical_layout_->setAutoLayout(tgui::AutoLayout::Top);
     render_thread_ = std::jthread(
         std::bind(&VisualizerSFML::renderTask, this, std::placeholders::_1));
   }
@@ -138,6 +141,8 @@ class VisualizerSFML : public Visualizer {
   sf::Transform global_transform_;
 
   tbb::concurrent_queue<tgui::Button::Ptr> new_buttons_;
+
+  tgui::VerticalLayout::Ptr tgui_vertical_layout_;
 
   Params params_;
 };
