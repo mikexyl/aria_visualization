@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tbb/concurrent_map.h>
 #include <tbb/concurrent_queue.h>
 
 #include <SFML/Graphics/CircleShape.hpp>
@@ -26,11 +27,14 @@ class VisualizerSFML : public Visualizer {
     Params() {}
 
     float sfml_fps{60};
+    std::pair<int, int> window_width_height{800, 600};
+    std::pair<int, int> offset{0, 0};
   };
 
   VisualizerSFML(Params params = {}) : Visualizer(params), params_(params) {
     clear();
     global_transform_ = sf::Transform::Identity;
+    global_transform_.translate(params_.offset.first, params_.offset.second);
     tgui_vertical_layout_ = tgui::VerticalLayout::create();
     tgui_vertical_layout_->setPosition(0, 0);
     tgui_vertical_layout_->setAutoLayout(tgui::AutoLayout::Top);
@@ -131,6 +135,10 @@ class VisualizerSFML : public Visualizer {
                              const Eigen::Vector4f& rgba,
                              float line_width) override;
 
+  void addKeyboardCallback(char key, std::function<void()> callback) {
+    keyboard_callbacks_.insert({key, callback});
+  }
+
  private:
   std::jthread render_thread_;
   std::atomic<bool> window_opened_{false};
@@ -141,6 +149,7 @@ class VisualizerSFML : public Visualizer {
   sf::Transform global_transform_;
 
   tbb::concurrent_queue<tgui::Button::Ptr> new_buttons_;
+  tbb::concurrent_map<char, std::function<void()>> keyboard_callbacks_;
 
   tgui::VerticalLayout::Ptr tgui_vertical_layout_;
 

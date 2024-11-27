@@ -9,7 +9,8 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
   float fps = params_.sfml_fps;
   const sf::Time target_frame_time = sf::seconds(1.0f / fps);
 
-  sf::RenderWindow window(sf::VideoMode(800, 600),
+  sf::RenderWindow window(sf::VideoMode(params_.window_width_height.first,
+                                        params_.window_width_height.second),
                           "VisualizerSFML",
                           sf::Style::Titlebar | sf::Style::Close);
   tgui::Gui gui(window);
@@ -47,6 +48,11 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
     }
 
     if (event.type == sf::Event::KeyPressed) {
+      char key = event.key.code + 'A';
+      std::cout << key << std::endl;
+      if (keyboard_callbacks_.contains(key)) {
+        keyboard_callbacks_.at(key)();
+      }
       switch (event.key.code) {
         case sf::Keyboard::W:
           global_transform_ =
