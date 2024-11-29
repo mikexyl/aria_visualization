@@ -80,11 +80,11 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
       window.clear(sf::Color::White);
       std::shared_ptr<sf::Drawable> shape;
       sf::RenderStates states(global_transform_);
-      while (drawables_.try_pop(shape)) {
+      for (auto& shape : static_drawables_) {
         window.draw(*shape, states);
       }
 
-      for (auto& shape : static_drawables_) {
+      while (drawables_.try_pop(shape)) {
         window.draw(*shape, states);
       }
 
