@@ -64,23 +64,25 @@ class VisualizerRerun : public Visualizer {
   static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
   void drawLinesImpl(const std::string& entity_path,
-                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
-                 Eigen::Vector4f rgba,
-                 float radius,
-                 const std::vector<std::string>& labels,
-                 const std::vector<std::string>& text) override;
+                     const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                     Eigen::Vector4f rgba,
+                     float radius,
+                     const std::vector<std::string>& labels,
+                     const std::vector<std::string>& text) override;
 
   void drawUncertaintyImpl2D(const std::string& entity_path,
                              const Point2& mean,
                              const std::vector<double>& ellipse,
                              const Eigen::Vector4f& rgba,
-                             float line_width) override;
+                             float line_width,
+                             bool is_static) override;
 
   void drawUncertaintyImpl3D(const std::string& entity_path,
                              const Point3& mean,
                              const std::vector<double>& ellipse,
                              const Eigen::Vector4f& rgba,
-                             float line_width) override;
+                             float line_width,
+                             bool is_static) override;
 
   void drawPointsImpl(const std::string& entity_path,
                       const std::vector<Point3>& points,

@@ -86,7 +86,8 @@ void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
                                             const Point2& mean,
                                             const std::vector<double>& ellipse,
                                             const Eigen::Vector4f& rgba,
-                                            float line_width) {
+                                            float line_width,
+                                            bool is_static) {
   double width = ellipse[0], height = ellipse[1], angle = ellipse[5];
   rec_->log(entity_path,
             rerun::Ellipsoids3D::from_centers_and_radii(
@@ -101,7 +102,8 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
                                             const Point3& mean,
                                             const std::vector<double>& ellipse,
                                             const Eigen::Vector4f& rgba,
-                                            float line_width) {
+                                            float line_width,
+                                            bool is_static) {
   rec_->log(entity_path,
             rerun::Ellipsoids3D::from_centers_and_radii(
                 {{mean.x(), mean.y(), mean.z()}},

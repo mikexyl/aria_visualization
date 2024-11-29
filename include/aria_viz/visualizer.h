@@ -262,47 +262,55 @@ class Visualizer {
                        const Pose2& mean,
                        const Eigen::Matrix2d& cov,
                        const Eigen::Vector4f& rgba,
-                       float line_width) {
-    drawUncertainty(entity_path, mean.translation(), cov, rgba, line_width);
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertainty(
+        entity_path, mean.translation(), cov, rgba, line_width, is_static);
   }
 
   void drawUncertainty(const std::string& entity_path,
                        const Point2& mean,
                        const Eigen::Matrix2d& cov,
                        const Eigen::Vector4f& rgba,
-                       float line_width) {
+                       float line_width,
+                       bool is_static = false) {
     drawUncertaintyImpl2D(
-        entity_path, mean, getEllipseFromCov(cov), rgba, line_width);
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width, is_static);
   }
 
   void drawUncertainty(const std::string& entity_path,
                        const Pose3& mean,
                        const Eigen::Matrix3d& cov,
                        const Eigen::Vector4f& rgba,
-                       float line_width) {
-    drawUncertainty(entity_path, mean.translation(), cov, rgba, line_width);
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertainty(
+        entity_path, mean.translation(), cov, rgba, line_width, is_static);
   }
 
   void drawUncertainty(const std::string& entity_path,
                        const Point3& mean,
                        const Eigen::Matrix3d& cov,
                        const Eigen::Vector4f& rgba,
-                       float line_width) {
+                       float line_width,
+                       bool is_static = false) {
     drawUncertaintyImpl3D(
-        entity_path, mean, getEllipseFromCov(cov), rgba, line_width);
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width, is_static);
   }
 
   void drawUncertainty(const std::string& entity_path,
                        const std::vector<Point3>& mean,
                        const std::vector<Eigen::Matrix3d>& cov,
                        const Eigen::Vector4f& rgba,
-                       float line_width) {
+                       float line_width,
+                       bool is_static = false) {
     for (size_t i = 0; i < mean.size(); i++) {
       drawUncertainty(entity_path + "/" + std::to_string(i),
                       mean[i],
                       cov[i],
                       rgba,
-                      line_width);
+                      line_width,
+                      is_static);
     }
   }
 
@@ -310,13 +318,15 @@ class Visualizer {
                                      const Point2& mean,
                                      const std::vector<double>& ellipse,
                                      const Eigen::Vector4f& rgba,
-                                     float line_width) {}
+                                     float line_width,
+                                     bool is_static) {}
 
   virtual void drawUncertaintyImpl3D(const std::string& entity_path,
                                      const Point3& mean,
                                      const std::vector<double>& ellipse,
                                      const Eigen::Vector4f& rgba,
-                                     float line_width) {}
+                                     float line_width,
+                                     bool is_static) {}
 
   void drawFactors(const std::string& entity_path,
                    const NonlinearFactorGraph& factors,

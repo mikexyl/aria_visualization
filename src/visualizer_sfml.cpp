@@ -18,7 +18,7 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
   // Create a panel to act as a container
   auto panel = tgui::Panel::create();
   panel->setPosition(0, 0);  // Set position of the panel
-  panel->setSize(50, 100);   // Set size of the panel
+  panel->setSize(100, 100);  // Set size of the panel
   panel->add(tgui_vertical_layout_);
   gui.add(panel);
 
@@ -78,11 +78,14 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
     if (render_frame_) {
       render_frame_ = false;
       window.clear(sf::Color::White);
-      sf::Drawable* shape;
+      std::shared_ptr<sf::Drawable> shape;
       sf::RenderStates states(global_transform_);
       while (drawables_.try_pop(shape)) {
         window.draw(*shape, states);
-        delete shape;
+      }
+
+      for (auto& shape : static_drawables_) {
+        window.draw(*shape, states);
       }
 
       tgui::Button::Ptr button;
@@ -113,7 +116,7 @@ void VisualizerSFML::drawLinesImpl(
     const std::vector<std::string>& labels,
     const std::vector<std::string>& text) {
   for (const auto& [p0, p1] : points_pairs) {
-    sf::VertexArray* line = new sf::VertexArray(sf::LinesStrip, 2);
+    auto line = std::make_shared<sf::VertexArray>(sf::LinesStrip, 2);
     (*line)[0].position = sf::Vector2f(p0.x(), p0.y());
     (*line)[1].position = sf::Vector2f(p1.x(), p1.y());
     (*line)[0].color = sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]);
@@ -126,29 +129,32 @@ void VisualizerSFML::drawUncertaintyImpl2D(const std::string& entity_path,
                                            const Point2& mean,
                                            const std::vector<double>& ellipse,
                                            const Eigen::Vector4f& rgba,
-                                           float line_width) {
-  static constexpr float kEllipseSizeNSigma = 1.0;
-  double width = ellipse[0] * kEllipseSizeNSigma,
-         height = ellipse[1] * kEllipseSizeNSigma, angle = ellipse[2];
-  sf::CircleShape* circle = new sf::CircleShape(width);
-  circle->setScale(1.0, height / width);
+                                           float radius,
+                                           bool is_static) {
+  float size_n_sigma = radius;
+  double width = ellipse[0] * size_n_sigma, height = ellipse[1] * size_n_sigma,
+         angle = ellipse[2];
+  auto circle = std::make_shared<sf::CircleShape>(width);
+  circle->setScale(1, height / width);
   circle->setFillColor(sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]));
   circle->setRotation(angle);
   circle->setPosition(mean.x() - width, mean.y() - height);
-  drawables_.push(circle);
+  pushDrawable(circle, is_static);
 }
 
 void VisualizerSFML::drawUncertaintyImpl3D(const std::string& entity_path,
                                            const Point3& mean,
                                            const std::vector<double>& ellipse,
                                            const Eigen::Vector4f& rgba,
-                                           float line_width) {
+                                           float line_width,
+                                           bool is_static) {
   Point2 mean2d(mean.x(), mean.y());
   drawUncertaintyImpl2D(entity_path,
                         mean2d,
                         {ellipse[0], ellipse[1], ellipse[5]},
                         rgba,
-                        line_width);
+                        line_width,
+                        is_static);
 }
 
 }  // namespace aria::viz

@@ -29,12 +29,14 @@ class VisualizerSFML : public Visualizer {
     float sfml_fps{60};
     std::pair<int, int> window_width_height{800, 600};
     std::pair<int, int> offset{0, 0};
+    std::pair<float, float> scale{1.0, 1.0};
   };
 
   VisualizerSFML(Params params = {}) : Visualizer(params), params_(params) {
     clear();
     global_transform_ = sf::Transform::Identity;
     global_transform_.translate(params_.offset.first, params_.offset.second);
+    global_transform_.scale(params_.scale.first, params_.scale.second);
     tgui_vertical_layout_ = tgui::VerticalLayout::create();
     tgui_vertical_layout_->setPosition(0, 0);
     tgui_vertical_layout_->setAutoLayout(tgui::AutoLayout::Top);
@@ -53,19 +55,24 @@ class VisualizerSFML : public Visualizer {
                       std::vector<float> radius,
                       bool is_static = false) override {
     for (size_t i = 0; i < points.size(); i++) {
-      sf::CircleShape* circle = new sf::CircleShape(radius[i]);
+      auto circle = std::make_shared<sf::CircleShape>(radius[i]);
       circle->setFillColor(
           sf::Color(rgba[i].x(), rgba[i].y(), rgba[i].z(), rgba[i].w()));
       circle->setPosition(points[i].x() - radius[i], points[i].y() - radius[i]);
-      drawables_.push(circle);
+      if (is_static) {
+        static_drawables_.push_back(circle);
+      } else {
+        drawables_.push(circle);
+      }
     }
   }
 
-  void clear() {
+  void clear(bool clear_static = false) {
     // pop all shapes and delete
-    sf::Drawable* shape;
-    while (drawables_.try_pop(shape)) {
-      delete shape;
+    drawables_.clear();
+
+    if (clear_static) {
+      static_drawables_.clear();
     }
   }
 
@@ -127,16 +134,27 @@ class VisualizerSFML : public Visualizer {
                              const Point2& mean,
                              const std::vector<double>& ellipse,
                              const Eigen::Vector4f& rgba,
-                             float line_width) override;
+                             float line_width,
+                             bool is_static) override;
 
   void drawUncertaintyImpl3D(const std::string& entity_path,
                              const Point3& mean,
                              const std::vector<double>& ellipse,
                              const Eigen::Vector4f& rgba,
-                             float line_width) override;
+                             float line_width,
+                             bool is_static) override;
 
   void addKeyboardCallback(char key, std::function<void()> callback) {
     keyboard_callbacks_.insert({key, callback});
+  }
+
+ private:
+  void pushDrawable(std::shared_ptr<sf::Drawable> drawable, bool is_static) {
+    if (is_static) {
+      static_drawables_.push_back(drawable);
+    } else {
+      drawables_.push(drawable);
+    }
   }
 
  private:
@@ -145,7 +163,8 @@ class VisualizerSFML : public Visualizer {
   std::atomic<bool> frame_ready_{true};
   std::atomic<bool> render_frame_{false};
 
-  tbb::concurrent_queue<sf::Drawable*> drawables_;
+  tbb::concurrent_queue<std::shared_ptr<sf::Drawable>> drawables_;
+  tbb::concurrent_vector<std::shared_ptr<sf::Drawable>> static_drawables_;
   sf::Transform global_transform_;
 
   tbb::concurrent_queue<tgui::Button::Ptr> new_buttons_;
