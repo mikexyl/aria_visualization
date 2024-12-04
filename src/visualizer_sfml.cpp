@@ -139,6 +139,8 @@ void VisualizerSFML::drawUncertaintyImpl2D(const std::string& entity_path,
   circle->setFillColor(sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]));
   circle->setRotation(angle);
   circle->setPosition(mean.x() - width, mean.y() - height);
+  circle->setOutlineColor(sf::Color::Black);
+  circle->setOutlineThickness(0.02);
   pushDrawable(circle, is_static);
 }
 

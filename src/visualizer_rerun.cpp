@@ -42,7 +42,7 @@ void VisualizerRerun::connectPositions3D(
   rec_->log(entity_path,
             rerun::LineStrips3D(lines)
                 .with_colors({fromEigen(rgba)})
-                .with_radii({radius})
+                .with_radii({rerun::components::Radius::ui_points(radius)})
                 .with_labels(labels));
 }
 
@@ -76,10 +76,15 @@ void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
     points_eigen.push_back(point.cast<float>());
   }
 
+  rerun::Collection<rerun::components::Radius> radii;
+  for (auto r : radius) {
+    radii.take_ownership(rerun::components::Radius::ui_points(r));
+  }
+
   rec_->log_with_static(
       entity_path,
       is_static,
-      rerun::Points3D(points_eigen).with_colors(colors).with_radii(radius));
+      rerun::Points3D(points_eigen).with_colors(colors).with_radii(radii));
 }
 
 void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
@@ -104,19 +109,21 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
                                             const Eigen::Vector4f& rgba,
                                             float line_width,
                                             bool is_static) {
-  rec_->log(entity_path,
-            rerun::Ellipsoids3D::from_centers_and_radii(
-                {{mean.x(), mean.y(), mean.z()}},
-                {{ellipse[0], ellipse[1], ellipse[2]}})
-                .with_colors({fromEigen(rgba)})
-                .with_rotation_axis_angles(
-                    {rerun::RotationAxisAngle(
-                         {1, 0, 0}, rerun::Angle::radians(ellipse[3])),
-                     rerun::RotationAxisAngle(
-                         {0, 1, 0}, rerun::Angle::radians(ellipse[4])),
-                     rerun::RotationAxisAngle(
-                         {0, 0, 1}, rerun::Angle::radians(ellipse[5]))})
-                .with_line_radii(line_width));
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::Ellipsoids3D::from_centers_and_radii(
+          {{mean.x(), mean.y(), mean.z()}},
+          {{ellipse[0], ellipse[1], ellipse[2]}})
+          .with_colors({fromEigen(rgba)})
+          .with_rotation_axis_angles(
+              {rerun::RotationAxisAngle({1, 0, 0},
+                                        rerun::Angle::radians(ellipse[3])),
+               rerun::RotationAxisAngle({0, 1, 0},
+                                        rerun::Angle::radians(ellipse[4])),
+               rerun::RotationAxisAngle({0, 0, 1},
+                                        rerun::Angle::radians(ellipse[5]))})
+          .with_line_radii(rerun::components::Radius::ui_points(line_width)));
 }
 
 void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
