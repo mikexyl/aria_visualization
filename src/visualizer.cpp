@@ -25,12 +25,128 @@ std::map<int, Eigen::Vector3f> AgentColorMap::color_map = {
     {19, Eigen::Vector3f(0, 64, 64)},
     {20, Eigen::Vector3f(64, 64, 64)}};
 
-const Eigen::Vector3f ColorMap::kGreen = Eigen::Vector3f(0, 255, 0);
-const Eigen::Vector3f ColorMap::kRed = Eigen::Vector3f(255, 0, 0);
-const Eigen::Vector3f ColorMap::kBlue = Eigen::Vector3f(0, 0, 255);
-const Eigen::Vector3f ColorMap::kGray = Eigen::Vector3f(128, 128, 128);
-const Eigen::Vector3f ColorMap::kBlack = Eigen::Vector3f(0, 0, 0);
+const Eigen::Vector4f ColorMap::kGreen = Eigen::Vector4f(0, 255, 0, 255);
+const Eigen::Vector4f ColorMap::kRed = Eigen::Vector4f(255, 0, 0, 255);
+const Eigen::Vector4f ColorMap::kBlue = Eigen::Vector4f(0, 0, 255, 255);
+const Eigen::Vector4f ColorMap::kGray = Eigen::Vector4f(128, 128, 128, 255);
+const Eigen::Vector4f ColorMap::kBlack = Eigen::Vector4f(0, 0, 0, 255);
 
 class Visualizer;
+
+void Visualizer::drawFactors(const std::string& entity_path,
+                             const NonlinearFactorGraph& factors,
+                             const Values& values,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool show_labels) {
+  std::vector<std::pair<Point3, Point3>> points;
+  std::vector<std::string> labels;
+  for (const auto& factor : factors) {
+    if (factor == nullptr) {
+      continue;
+    }
+    auto keys = factor->keys();
+    CHECK(keys.size() <= 2,
+          "Not implemented for factors with more than 2 keys");
+
+    auto key = keys[0];
+    std::optional<Point3> p0, p1;
+    if (keys.size() == 1) {
+      p0 = getPoint3(key, values);
+      if (p0.has_value()) p1 = *p0 + Point3(0, 0, 1.0);
+    } else {
+      p0 = getPoint3(keys[0], values);
+      p1 = getPoint3(keys[1], values);
+    }
+
+    if (p0.has_value() && p1.has_value()) {
+      points.emplace_back(*p0, *p1);
+      if (keys.size() == 2) {
+        labels.push_back(fmt::format(
+            "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+      } else {
+        labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+      }
+    }
+  }
+
+  drawLines(entity_path,
+            points,
+            rgba,
+            line_width,
+            show_labels ? labels : std::vector<std::string>{});
+}
+void Visualizer::drawPoints(const std::string& entity_path,
+                            const Values& values,
+                            const std::vector<Eigen::Vector4f>& rgba,
+                            std::vector<float> radius,
+                            bool is_static) {
+  std::vector<Point3> points;
+  // convert all values to points
+  for (const auto& [key, value] : values) {
+    if (auto point = getPoint3(key, values)) {
+      points.push_back(*point);
+    }
+  }
+
+  std::vector<Eigen::Vector4f> rgba_full;
+  if (rgba.size() == 1) {
+    rgba_full.resize(points.size(), rgba[0]);
+  } else {
+    rgba_full = rgba;
+  }
+
+  std::vector<float> radius_full;
+  if (radius.size() == 1) {
+    radius_full.resize(points.size(), radius[0]);
+  } else {
+    radius_full = radius;
+  }
+
+  drawPointsImpl(entity_path, points, rgba_full, radius_full, is_static);
+}
+
+std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix2d& cov) {
+  // Compute the eigenvalues and eigenvectors
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigensolver(cov);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Failed to compute eigenvalues and eigenvectors." << std::endl;
+    return {};
+  }
+
+  // Eigenvalues are the lengths of the ellipse's axes
+  Eigen::Vector2d eigenvalues = eigensolver.eigenvalues();
+  double width = std::sqrt(eigenvalues(0)) * 4;
+  double height = std::sqrt(eigenvalues(1)) * 4;
+
+  // Eigenvectors are the directions of the ellipse's axes
+  Eigen::Matrix2d eigenvectors = eigensolver.eigenvectors();
+  double angle_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+
+  return {width, height, angle_rad};
+}
+
+std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix3d& cov) {
+  // Compute the eigenvalues and eigenvectors
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigensolver(cov);
+  if (eigensolver.info() != Eigen::Success) {
+    std::cerr << "Failed to compute eigenvalues and eigenvectors." << std::endl;
+    return {};
+  }
+
+  // Eigenvalues are the lengths of the ellipse's axes
+  Eigen::Vector3d eigenvalues = eigensolver.eigenvalues();
+  double x = std::sqrt(eigenvalues(0)) * 2;
+  double y = std::sqrt(eigenvalues(1)) * 2;
+  double z = std::sqrt(eigenvalues(2)) * 2;
+
+  // Eigenvectors are the directions of the ellipse's axes
+  Eigen::Matrix3d eigenvectors = eigensolver.eigenvectors();
+  double angle_x_rad = std::atan2(eigenvectors(1, 0), eigenvectors(0, 0));
+  double angle_y_rad = std::atan2(eigenvectors(2, 1), eigenvectors(1, 1));
+  double angle_z_rad = std::atan2(eigenvectors(0, 2), eigenvectors(1, 2));
+
+  return {x, y, z, angle_x_rad, angle_y_rad, angle_z_rad};
+}
 
 }  // namespace aria::viz

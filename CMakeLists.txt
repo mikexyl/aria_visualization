@@ -4,6 +4,7 @@ project(aria_viz VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-narrowing")
+add_compile_options(-Wno-unused-parameter -Wno-unused-function)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -12,9 +13,18 @@ find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(rerun_sdk REQUIRED)
+find_package(SFML COMPONENTS graphics REQUIRED)
+find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
 
-get_target_property(aria_common_LOCATION aria_common LOCATION)
-message(STATUS "aria_common_LOCATION: ${aria_common_LOCATION}")
+# install TGUI by fetch content
+include(FetchContent)
+# set TGUI_BACKEND to SFML
+set(TGUI_BACKEND "SFML_GRAPHICS")
+FetchContent_Declare(
+  tgui
+  GIT_REPOSITORY https://github.com/texus/TGUI.git
+  GIT_TAG 1.x)
+FetchContent_MakeAvailable(tgui)
 
 set(INCLUDES
   ${OpenCV_INCLUDE_DIRS}
@@ -25,10 +35,15 @@ set(DEPENDENCIES
   ${OpenCV_LIBS}
   gtsam
   aria_common
+  sfml-graphics
+  TBB::tbb TBB::tbbmalloc
+  tgui
 )
+
 add_library(${PROJECT_NAME} STATIC
   src/visualizer.cpp
   src/visualizer_rerun.cpp
+  src/visualizer_sfml.cpp
 )
 
 # Specify include directories
@@ -45,31 +60,34 @@ target_link_libraries(${PROJECT_NAME}
   ${DEPENDENCIES}
 )
 
-add_executable(test_rerun tests/rerun.cpp)
-target_include_directories(test_rerun PRIVATE ${INCLUDES})
-target_link_libraries(test_rerun ${PROJECT_NAME})
+add_subdirectory(tests)
 
 # Export rerun_sdk
 # export(EXPORT rerun_sdkTargets FILE _deps/rerun_sdk-build/rerun_sdkTargets.cmake)
 
+# export tgui
+export(TARGETS tgui
+  FILE _deps/tgui-build/tguiTargets.cmake
+)
+
 # Export the target for use in other projects
-export(TARGETS ${PROJECT_NAME} 
+export(TARGETS ${PROJECT_NAME}
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
 # install(TARGETS ${PROJECT_NAME}
-#   EXPORT ${PROJECT_NAME}Targets
-#   RUNTIME DESTINATION bin
-#   LIBRARY DESTINATION lib
-#   ARCHIVE DESTINATION lib
-#   INCLUDES DESTINATION include
+# EXPORT ${PROJECT_NAME}Targets
+# RUNTIME DESTINATION bin
+# LIBRARY DESTINATION lib
+# ARCHIVE DESTINATION lib
+# INCLUDES DESTINATION include
 # )
 
 # # Skip installing headers since they are used in-place
 # # Install the export file for the target
 # install(EXPORT ${PROJECT_NAME}Targets
-#   FILE ${PROJECT_NAME}Targets.cmake
-#   DESTINATION lib/cmake/${PROJECT_NAME}
+# FILE ${PROJECT_NAME}Targets.cmake
+# DESTINATION lib/cmake/${PROJECT_NAME}
 # )
 
 # Configure and install the package configuration file

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 #include <rerun.hpp>
 
 #include "aria_viz/visualizer.h"
@@ -30,6 +32,7 @@ class VisualizerRerun : public Visualizer {
         this->app_id = this->recording_id;
       }
     }
+
     std::string app_id;
     std::string recording_id;
   };
@@ -42,8 +45,7 @@ class VisualizerRerun : public Visualizer {
                  params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-    error_ = rec_->connect();
-    error_.exit_on_failure();
+    rec_->connect_tcp().exit_on_failure();
 
     rec_->log_static(
         "map",
@@ -52,72 +54,41 @@ class VisualizerRerun : public Visualizer {
 
   virtual ~VisualizerRerun() {}
 
+  template <typename... Args>
+  void setTime(Args... args) {
+    rec_->set_time(args...);
+  }
+
   void setTimeNSec(size_t timestamp) override;
 
   static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
-  static std::tuple<double, double, double> getEllipseFromCov(
-      const Eigen::Matrix2d& cov);
+  void drawLinesImpl(const std::string& entity_path,
+                     const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                     Eigen::Vector4f rgba,
+                     float radius,
+                     const std::vector<std::string>& labels,
+                     const std::vector<std::string>& text) override;
 
-  static std::vector<Point3> generateEllipse(const Eigen::Vector2d& mean,
-                                             const Eigen::Matrix2d& cov);
+  void drawUncertaintyImpl2D(const std::string& entity_path,
+                             const Point2& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool is_static) override;
 
-  void connectPointsToPoints(
-      const std::string& entity_path,
-      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
-      float radius = 0.01f,
-      const std::vector<std::string>& labels = {}) override {
-    connectPointsToPoints(entity_path, points_pairs, rgba, radius, labels, {});
-  }
+  void drawUncertaintyImpl3D(const std::string& entity_path,
+                             const Point3& mean,
+                             const std::vector<double>& ellipse,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool is_static) override;
 
-  void connectPointsToPoints(
-      const std::string& entity_path,
-      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
-      float radius,
-      const std::vector<std::string>& labels,
-      const std::vector<std::string>& text);
-
-  void visualizeUncertainty(const std::string& entity_path,
-                            const Point2& mean,
-                            const Eigen::Matrix2d& cov,
-                            const Eigen::Vector4f& rgba,
-                            float line_width) override;
-
-  void visualizeUncertainty(const std::string& entity_path,
-                            const Point3& mean,
-                            const Eigen::Matrix3d& cov,
-                            const Eigen::Vector4f& rgba,
-                            float line_width) override;
-
-  void visualizeFactors(const std::string& entity_path,
-                        const NonlinearFactorGraph& factors,
-                        const Values& values,
-                        const Eigen::Vector4f& rgba,
-                        float line_width,
-                        bool show_labels = false) override;
-
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const std::vector<Eigen::Vector4f>& rgba,
-                        float radius,
-                        bool is_static = false) override;
-
-  void visualizePoints(const std::string& entity_path,
-                       const std::vector<Point3>& points,
-                       const std::vector<Eigen::Vector4f>& rgba,
-                       std::vector<float> radius,
-                       bool is_static = false) override;
-
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const Eigen::Vector4f& rgba,
-                        float radius,
-                        bool is_static = false) {
-    return Visualizer::visualizePoints(
-        entity_path, points, rgba, radius, is_static);
-  }
+  void drawPointsImpl(const std::string& entity_path,
+                      const std::vector<Point3>& points,
+                      const std::vector<Eigen::Vector4f>& rgba,
+                      std::vector<float> radius,
+                      bool is_static = false) override;
 
   /**
    * @brief add spdlog messages to rerun at the given level
@@ -126,27 +97,9 @@ class VisualizerRerun : public Visualizer {
    */
   void addSpdlogToRerun(spdlog::level::level_enum level);
 
-  auto rec() { return rec_.get(); }
+  rerun::RecordingStream* rec() { return rec_.get(); }
 
   void plotBenchmarkStats();
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const std::vector<Point2>& mean,
-                              const std::vector<Eigen::Matrix2d>& cov,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const std::vector<Point3>& mean,
-                              const std::vector<Eigen::Matrix3d>& cov,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
-
-  void visualizeUncertainty2D(const std::string& entity_path,
-                              const NonlinearFactorGraph& factors,
-                              const Values& values,
-                              const Eigen::Vector4f& rgba,
-                              bool is_static);
 
   template <typename T>
   void plotLabeledData(const std::string& entity_path, const T& data) {
@@ -169,7 +122,6 @@ class VisualizerRerun : public Visualizer {
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;
-  rerun::Error error_;
 
   std::optional<AgentId> agent_id_;
 };

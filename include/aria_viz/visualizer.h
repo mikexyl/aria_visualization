@@ -43,11 +43,11 @@ struct ColorMap {
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 
-  static const Eigen::Vector3f kGreen;
-  static const Eigen::Vector3f kRed;
-  static const Eigen::Vector3f kBlue;
-  static const Eigen::Vector3f kGray;
-  static const Eigen::Vector3f kBlack;
+  static const Eigen::Vector4f kGreen;
+  static const Eigen::Vector4f kRed;
+  static const Eigen::Vector4f kBlue;
+  static const Eigen::Vector4f kGray;
+  static const Eigen::Vector4f kBlack;
 };
 
 struct AgentColorMap : public ColorMap {
@@ -66,6 +66,14 @@ struct AgentColorMap : public ColorMap {
     auto color0 = color_map[agent0];
     auto color1 = color_map[agent1];
     auto color = (color0 + color1) / 2;
+    return Eigen::Vector4f(color(0), color(1), color(2), alpha);
+  }
+
+  static Eigen::Vector4f get(AgentId agent_id, float alpha) {
+    if (color_map.find(agent_id) == color_map.end()) {
+      color_map[agent_id] = random();
+    }
+    auto color = color_map[agent_id];
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 };
@@ -87,6 +95,7 @@ class Visualizer {
     bool tracking_side_by_side{false};
     bool step_by_step{false};
     bool visualize_ba_edges{false};
+    std::string app_name{"ARIA Visualizer"};
 
     bool any_visualization_enabled() const {
       return visualize_keypoints || visualize_landmarks_2d_tracking ||
@@ -134,35 +143,69 @@ class Visualizer {
 
   void toggleStepByStep() { params_.step_by_step = !params_.step_by_step; }
 
-  virtual void connectPointsToPoints(
+  void drawLines(const std::string& entity_path,
+                 const std::vector<std::pair<Point3, Point3>>& points_pairs,
+                 Eigen::Vector4f rgba,
+                 float radius,
+                 const std::vector<std::string>& labels = {},
+                 const std::vector<std::string>& text = {}) {
+    drawLinesImpl(entity_path, points_pairs, rgba, radius, labels, text);
+  }
+
+  virtual void drawLinesImpl(
       const std::string& entity_path,
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
       Eigen::Vector4f rgba,
-      float radius = 0.01f,
-      const std::vector<std::string>& labels = {}) {}
+      float radius,
+      const std::vector<std::string>& labels,
+      const std::vector<std::string>& text) {}
 
-  float visualizePoints(const std::string& entity_path,
-                        const std::vector<Point3>& points,
-                        const Eigen::Vector4f& rgba,
-                        float radius,
-                        bool is_static = false) {
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const Eigen::Vector4f& rgba,
+                  float radius,
+                  bool is_static = false) {
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
-    return visualizePoints(entity_path, points, rgbs, radius, is_static);
+    drawPoints(entity_path, points, rgbs, radius, is_static);
   }
 
-  virtual float visualizePoints(const std::string& entity_path,
-                                const std::vector<Point3>& points,
-                                const std::vector<Eigen::Vector4f>& rgba,
-                                float radius,
-                                bool is_static = false) {
-    return 0.;
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  float radius,
+                  bool is_static = false) {
+    std::vector<float> radii(points.size(), radius);
+    drawPointsImpl(entity_path, points, rgba, radii, is_static);
   }
 
-  virtual void visualizePoints(const std::string& entity_path,
-                               const std::vector<Point3>& points,
-                               const std::vector<Eigen::Vector4f>& rgba,
-                               std::vector<float> radius,
-                               bool is_static = false) {}
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false) {
+    drawPointsImpl(entity_path, points, rgba, radius, is_static);
+  }
+
+  virtual void drawPointsImpl(const std::string& entity_path,
+                              const std::vector<Point3>& points,
+                              const std::vector<Eigen::Vector4f>& rgba,
+                              std::vector<float> radius,
+                              bool is_static = false) {}
+
+  void drawPoints(const std::string& entity_path,
+                  const std::vector<Point3>& points,
+                  const Eigen::Vector4f& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false) {
+    std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
+    drawPointsImpl(entity_path, points, rgbs, radius, is_static);
+  }
+
+  void drawPoints(const std::string& entity_path,
+                  const Values& values,
+                  const std::vector<Eigen::Vector4f>& rgba,
+                  std::vector<float> radius,
+                  bool is_static = false);
 
   static std::optional<Point3> getPoint3(const Key& key, const Values& values) {
     if (values.exists(key) == false) {
@@ -205,31 +248,92 @@ class Visualizer {
       }
     }
 
-    connectPointsToPoints(entity_path, points, rgba, radius);
+    drawLines(entity_path, points, rgba, radius);
   }
 
   template <typename ContainerT>
   void visualizeGTCameraPoses(const std::string& entity_path,
                               const ContainerT& frames);
 
-  virtual void visualizeUncertainty(const std::string& entity_path,
-                                    const Point2& mean,
-                                    const Eigen::Matrix2d& cov,
-                                    const Eigen::Vector4f& rgba,
-                                    float line_width) {}
+  static std::vector<double> getEllipseFromCov(const Eigen::Matrix2d& cov);
+  static std::vector<double> getEllipseFromCov(const Eigen::Matrix3d& cov);
 
-  virtual void visualizeUncertainty(const std::string& entity_path,
-                                    const Point3& mean,
-                                    const Eigen::Matrix3d& cov,
-                                    const Eigen::Vector4f& rgba,
-                                    float line_width) {}
+  void drawUncertainty(const std::string& entity_path,
+                       const Pose2& mean,
+                       const Eigen::Matrix2d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertainty(
+        entity_path, mean.translation(), cov, rgba, line_width, is_static);
+  }
 
-  virtual void visualizeFactors(const std::string& entity_path,
-                                const NonlinearFactorGraph& factors,
-                                const Values& values,
-                                const Eigen::Vector4f& rgba,
-                                float line_width,
-                                bool show_labels = false) {}
+  void drawUncertainty(const std::string& entity_path,
+                       const Point2& mean,
+                       const Eigen::Matrix2d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertaintyImpl2D(
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width, is_static);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const Pose3& mean,
+                       const Eigen::Matrix3d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertainty(
+        entity_path, mean.translation(), cov, rgba, line_width, is_static);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const Point3& mean,
+                       const Eigen::Matrix3d& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width,
+                       bool is_static = false) {
+    drawUncertaintyImpl3D(
+        entity_path, mean, getEllipseFromCov(cov), rgba, line_width, is_static);
+  }
+
+  void drawUncertainty(const std::string& entity_path,
+                       const std::vector<Point3>& mean,
+                       const std::vector<Eigen::Matrix3d>& cov,
+                       const Eigen::Vector4f& rgba,
+                       float line_width,
+                       bool is_static = false) {
+    for (size_t i = 0; i < mean.size(); i++) {
+      drawUncertainty(entity_path + "/" + std::to_string(i),
+                      mean[i],
+                      cov[i],
+                      rgba,
+                      line_width,
+                      is_static);
+    }
+  }
+
+  virtual void drawUncertaintyImpl2D(const std::string& entity_path,
+                                     const Point2& mean,
+                                     const std::vector<double>& ellipse,
+                                     const Eigen::Vector4f& rgba,
+                                     float line_width,
+                                     bool is_static) {}
+
+  virtual void drawUncertaintyImpl3D(const std::string& entity_path,
+                                     const Point3& mean,
+                                     const std::vector<double>& ellipse,
+                                     const Eigen::Vector4f& rgba,
+                                     float line_width,
+                                     bool is_static) {}
+
+  void drawFactors(const std::string& entity_path,
+                   const NonlinearFactorGraph& factors,
+                   const Values& values,
+                   const Eigen::Vector4f& rgba,
+                   float line_width,
+                   bool show_labels = false);
 
  protected:
   virtual void step() {
