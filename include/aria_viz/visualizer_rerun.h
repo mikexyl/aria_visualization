@@ -110,6 +110,11 @@ class VisualizerRerun : public Visualizer {
     }
   }
 
+  void drawScalar(const std::string& entity_path, double value) override {
+    LOG_DATA(entity_path, value);
+    rec_->log(entity_path, rerun::Scalar(value));
+  }
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,

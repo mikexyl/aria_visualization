@@ -140,6 +140,10 @@ class Visualizer {
   virtual ~Visualizer() {}
 
   virtual void setTimeNSec(size_t timestamp) {}
+  void setTime(std::time_t timestamp = std::time(nullptr)) {
+    // get the nsec from the timestamp
+    setTimeNSec(timestamp);
+  }
 
   void toggleStepByStep() { params_.step_by_step = !params_.step_by_step; }
 
@@ -151,6 +155,8 @@ class Visualizer {
                  const std::vector<std::string>& text = {}) {
     drawLinesImpl(entity_path, points_pairs, rgba, radius, labels, text);
   }
+
+  virtual void drawScalar(const std::string& entity_path, double value) {}
 
   virtual void drawLinesImpl(
       const std::string& entity_path,
@@ -213,13 +219,18 @@ class Visualizer {
     }
     auto dim = values.at(key).dim();
     if (dim == 3) {
-      auto point = values.at<Pose2>(key);
-      return Point3(point.x(), point.y(), 0);
+      try {
+        auto point = values.at<Pose2>(key);
+        return Point3(point.x(), point.y(), 0);
+      } catch (gtsam::ValuesIncorrectType& e) {
+        auto point = values.at<Point3>(key);
+        return point;
+      }
     } else if (dim == 6) {
       auto point = values.at<Pose3>(key);
       return Pose3(point).translation();
     } else {
-      LOG_FATAL("Not implemented for dim: {}", std::to_string(dim));
+      return std::nullopt;
     }
   }
 
@@ -238,12 +249,13 @@ class Visualizer {
                      const Values& values,
                      const Eigen::Vector4f& rgba,
                      float radius,
-                     bool is_static = false) {
+                     bool is_static = false,
+                     float height = 10.) {
     std::vector<std::pair<Point3, Point3>> points;
     for (auto key : keys) {
       auto point = getPoint3(key, values);
       if (point) {
-        Point3 p_up{point->x(), point->y(), point->z() + radius * 10.};
+        Point3 p_up{point->x(), point->y(), point->z() + radius * height};
         points.emplace_back(*point, p_up);
       }
     }
@@ -328,12 +340,50 @@ class Visualizer {
                                      float line_width,
                                      bool is_static) {}
 
+  template <typename FactorType>
   void drawFactors(const std::string& entity_path,
-                   const NonlinearFactorGraph& factors,
+                   const FactorGraph<FactorType>& factors,
                    const Values& values,
                    const Eigen::Vector4f& rgba,
                    float line_width,
-                   bool show_labels = false);
+                   bool show_labels = false) {
+    std::vector<std::pair<Point3, Point3>> points;
+    std::vector<std::string> labels;
+    for (const auto& factor : factors) {
+      if (factor == nullptr) {
+        continue;
+      }
+      auto keys = factor->keys();
+      CHECK(keys.size() <= 2,
+            "Not implemented for factors with more than 2 keys");
+
+      auto key = keys[0];
+      std::optional<Point3> p0, p1;
+      if (keys.size() == 1) {
+        p0 = getPoint3(key, values);
+        if (p0.has_value()) p1 = *p0 + Point3(0, 0, 1.0);
+      } else {
+        p0 = getPoint3(keys[0], values);
+        p1 = getPoint3(keys[1], values);
+      }
+
+      if (p0.has_value() && p1.has_value()) {
+        points.emplace_back(*p0, *p1);
+        if (keys.size() == 2) {
+          labels.push_back(fmt::format(
+              "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+        } else {
+          labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+        }
+      }
+    }
+
+    drawLines(entity_path,
+              points,
+              rgba,
+              line_width,
+              show_labels ? labels : std::vector<std::string>{});
+  }
 
  protected:
   virtual void step() {

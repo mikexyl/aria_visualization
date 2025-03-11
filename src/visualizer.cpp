@@ -33,49 +33,6 @@ const Eigen::Vector4f ColorMap::kBlack = Eigen::Vector4f(0, 0, 0, 255);
 
 class Visualizer;
 
-void Visualizer::drawFactors(const std::string& entity_path,
-                             const NonlinearFactorGraph& factors,
-                             const Values& values,
-                             const Eigen::Vector4f& rgba,
-                             float line_width,
-                             bool show_labels) {
-  std::vector<std::pair<Point3, Point3>> points;
-  std::vector<std::string> labels;
-  for (const auto& factor : factors) {
-    if (factor == nullptr) {
-      continue;
-    }
-    auto keys = factor->keys();
-    CHECK(keys.size() <= 2,
-          "Not implemented for factors with more than 2 keys");
-
-    auto key = keys[0];
-    std::optional<Point3> p0, p1;
-    if (keys.size() == 1) {
-      p0 = getPoint3(key, values);
-      if (p0.has_value()) p1 = *p0 + Point3(0, 0, 1.0);
-    } else {
-      p0 = getPoint3(keys[0], values);
-      p1 = getPoint3(keys[1], values);
-    }
-
-    if (p0.has_value() && p1.has_value()) {
-      points.emplace_back(*p0, *p1);
-      if (keys.size() == 2) {
-        labels.push_back(fmt::format(
-            "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
-      } else {
-        labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
-      }
-    }
-  }
-
-  drawLines(entity_path,
-            points,
-            rgba,
-            line_width,
-            show_labels ? labels : std::vector<std::string>{});
-}
 void Visualizer::drawPoints(const std::string& entity_path,
                             const Values& values,
                             const std::vector<Eigen::Vector4f>& rgba,
@@ -148,5 +105,21 @@ std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix3d& cov) {
 
   return {x, y, z, angle_x_rad, angle_y_rad, angle_z_rad};
 }
+
+template <>
+void Visualizer::drawFactors(const std::string& entity_path,
+                             const FactorGraph<NonlinearFactor>& factors,
+                             const Values& values,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool is_static);
+
+template <>
+void Visualizer::drawFactors(const std::string& entity_path,
+                             const FactorGraph<GaussianFactor>& factors,
+                             const Values& values,
+                             const Eigen::Vector4f& rgba,
+                             float line_width,
+                             bool is_static);
 
 }  // namespace aria::viz

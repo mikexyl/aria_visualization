@@ -12,11 +12,6 @@ using namespace gtsam;
 
 namespace aria::viz {
 
-static rerun::Collection<rerun::TensorDimension> tensor_shape(
-    const cv::Mat& img) {
-  return {img.rows, img.cols, img.channels()};
-};
-
 void VisualizerRerun::setTimeNSec(size_t timestamp) {
   rec_->set_time_nanos("time", timestamp);
 }
