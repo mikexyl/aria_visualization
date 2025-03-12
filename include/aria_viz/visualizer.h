@@ -339,6 +339,9 @@ class Visualizer {
                                      const Eigen::Vector4f& rgba,
                                      float line_width,
                                      bool is_static) {}
+  
+                                    //  void drawBayesTree(const std::string& entity_path,
+                                      
 
   template <typename FactorType>
   void drawFactors(const std::string& entity_path,

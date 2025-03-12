@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gtsam/linear/GaussianBayesTree.h>
+
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <rerun.hpp>
@@ -53,11 +55,6 @@ class VisualizerRerun : public Visualizer {
   }
 
   virtual ~VisualizerRerun() {}
-
-  template <typename... Args>
-  void setTime(Args... args) {
-    rec_->set_time(args...);
-  }
 
   void setTimeNSec(size_t timestamp) override;
 
@@ -114,6 +111,12 @@ class VisualizerRerun : public Visualizer {
     LOG_DATA(entity_path, value);
     rec_->log(entity_path, rerun::Scalar(value));
   }
+
+  void drawBayesTree(const std::string& entity_path,
+                     const GaussianBayesTree& bayes_tree,
+                     const Eigen::Vector4f& rgba,
+                     float line_width = 0.1f,
+                     bool is_static = false);
 
  protected:
   void connectPositions3D(

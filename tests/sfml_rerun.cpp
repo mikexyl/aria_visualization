@@ -13,7 +13,7 @@ int main() {
 
   int it = 0;
   while (true) {
-    viz.setTime("sfml", std::chrono::system_clock::now());
+    viz.setTime();
     std::vector<Point3> samples;
     for (int i = 0; i < 10; i++) {
       samples.push_back(Point3(i * 10, i * 10, 0));

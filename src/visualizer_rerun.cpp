@@ -185,4 +185,37 @@ void VisualizerRerun::plotBenchmarkStats() {
   }
 }
 
+void VisualizerRerun::drawBayesTree(const std::string& entity_path,
+                                    const GaussianBayesTree& bayes_tree,
+                                    const Eigen::Vector4f& rgba,
+                                    float line_width,
+                                    bool is_static) {
+  std::vector<std::string> cliques;
+  std::vector<rerun::components::GraphEdge> edges;
+  std::vector<rerun::components::Color> colors;
+  for (auto const& [key, clique] : bayes_tree.nodes()) {
+    if (!clique) continue;
+    cliques.push_back(fmt::format("{}", *clique));
+    for (auto const& child : clique->children) {
+      if (!child) continue;
+      edges.push_back({fmt::format("{}", *clique), fmt::format("{}", *child)});
+    }
+    // if no parent, then it is the root then it's red
+    if (clique->parent() == nullptr) {
+      colors.push_back({255, 0, 0, 255});
+    } else {
+      colors.push_back({255, 255, 255, 255});
+    }
+  }
+
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::GraphNodes(cliques).with_labels(cliques).with_colors(colors));
+  rec_->log_with_static(entity_path,
+                        is_static,
+                        rerun::GraphEdges(edges).with_graph_type(
+                            rerun::components::GraphType::Directed));
+}
+
 }  // namespace aria::viz
