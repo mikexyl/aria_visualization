@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gtsam/linear/GaussianBayesTree.h>
+
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <rerun.hpp>
@@ -53,11 +55,6 @@ class VisualizerRerun : public Visualizer {
   }
 
   virtual ~VisualizerRerun() {}
-
-  template <typename... Args>
-  void setTime(Args... args) {
-    rec_->set_time(args...);
-  }
 
   void setTimeNSec(size_t timestamp) override;
 
@@ -113,6 +110,37 @@ class VisualizerRerun : public Visualizer {
   void drawScalar(const std::string& entity_path, double value) override {
     LOG_DATA(entity_path, value);
     rec_->log(entity_path, rerun::Scalar(value));
+  }
+
+  void drawBayesTree(const std::string& entity_path,
+                     const GaussianBayesTree& bayes_tree,
+                     const Eigen::Vector4f& rgba,
+                     float line_width = 0.1f,
+                     bool is_static = false);
+
+  void drawBayesTreeEdges(
+      const std::string& entity_path,
+      std::vector<std::pair<GaussianBayesTreeClique::shared_ptr,
+                            GaussianBayesTreeClique::shared_ptr>> edges,
+      std::vector<Eigen::Vector4f> rgba,
+      float line_width = 0.1f,
+      bool is_static = false);
+
+  void drawBayesTreeEdges(
+      const std::string& entity_path,
+      std::vector<GaussianBayesTreeClique::shared_ptr> edges,
+      std::vector<Eigen::Vector4f> rgba,
+      float line_width = 0.1f,
+      bool is_static = false) {
+    // Convert the edges to pairs
+    std::vector<std::pair<GaussianBayesTreeClique::shared_ptr,
+                          GaussianBayesTreeClique::shared_ptr>>
+        edges_pairs;
+    for (size_t i = 0; i < edges.size() - 1; i++) {
+      edges_pairs.push_back({edges[i], edges[i + 1]});
+    }
+
+    drawBayesTreeEdges(entity_path, edges_pairs, rgba, line_width, is_static);
   }
 
  protected:

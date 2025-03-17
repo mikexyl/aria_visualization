@@ -185,4 +185,82 @@ void VisualizerRerun::plotBenchmarkStats() {
   }
 }
 
+void VisualizerRerun::drawBayesTree(const std::string& entity_path,
+                                    const GaussianBayesTree& bayes_tree,
+                                    const Eigen::Vector4f& rgba,
+                                    float line_width,
+                                    bool is_static) {
+  std::vector<std::string> cliques;
+  std::vector<rerun::components::GraphEdge> edges;
+  std::vector<rerun::components::Color> colors;
+  for (auto const& [key, clique] : bayes_tree.nodes()) {
+    if (!clique) continue;
+    cliques.push_back(fmt::format("{}", *clique));
+    for (auto const& child : clique->children) {
+      if (!child) continue;
+      edges.push_back({fmt::format("{}", *clique), fmt::format("{}", *child)});
+    }
+    // if no parent, then it is the root then it's red
+    if (clique->parent() == nullptr) {
+      colors.push_back({255, 0, 0, 255});
+    } else {
+      colors.push_back({255, 255, 255, 255});
+    }
+  }
+
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::GraphNodes(cliques).with_labels(cliques).with_colors(colors));
+  rec_->log_with_static(entity_path,
+                        is_static,
+                        rerun::GraphEdges(edges).with_graph_type(
+                            rerun::components::GraphType::Directed));
+}
+
+void VisualizerRerun::drawBayesTreeEdges(
+    const std::string& entity_path,
+    std::vector<std::pair<GaussianBayesTreeClique::shared_ptr,
+                          GaussianBayesTreeClique::shared_ptr>> edges,
+    std::vector<Eigen::Vector4f> rgba,
+    float line_width,
+    bool is_static) {
+  std::vector<rerun::components::GraphEdge> rerun_edges;
+  std::vector<std::string> cliques;
+  for (size_t i = 0; i < edges.size(); i++) {
+    auto [clique0, clique1] = edges[i];
+    rerun_edges.push_back(
+        {fmt::format("{}", *clique0), fmt::format("{}", *clique1)});
+    cliques.push_back(fmt::format("{}", *clique0));
+    cliques.push_back(fmt::format("{}", *clique1));
+  }
+
+  std::vector<rerun::components::Color> colors;
+  for (const auto& color : rgba) {
+    colors.push_back(fromEigen(color));
+  }
+
+  // log nodes with blue color
+  std::vector<rerun::components::Color> clique_colors;
+  if (rgba.size() == 1) {
+    clique_colors.resize(cliques.size(), fromEigen(rgba[0]));
+  } else {
+    LOG_FATAL("multiple colors not supported for now");
+  }
+
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::GraphNodes(cliques).with_labels(cliques).with_colors(
+          clique_colors));
+
+  //! rerun doesn't support colored edges
+  // rec_->log_with_static(
+  //     entity_path,
+  //     is_static,
+  //     rerun::GraphEdges(rerun_edges)
+  //         .with_line_radii(rerun::components::Radius::ui_points(line_width))
+  //         .with_graph_type(rerun::components::GraphType::Directed));
+}
+
 }  // namespace aria::viz

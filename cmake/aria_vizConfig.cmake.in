@@ -6,6 +6,9 @@ include(CMakeFindDependencyMacro)
 set(rerun_sdk_DIR @rerun_sdk_DIR@)
 find_dependency(rerun_sdk)
 
+set(aria_common_DIR @aria_common_DIR@)
+find_dependency(aria_common)
+
 # add sfml dependency
 find_dependency(SFML COMPONENTS graphics window system)
 
