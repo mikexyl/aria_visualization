@@ -35,7 +35,23 @@ int main() {
   visualizer_rerun.drawFactors("graph", *graph, *values, {0, 0, 0, 0.9}, 1.0);
   MarginalsExposeBayesTree marginals(*graph, *values);
   const auto& bayes_tree = marginals.getBayesTree();
+
+  std::vector<std::pair<gtsam::GaussianBayesTreeClique::shared_ptr,
+                        gtsam::GaussianBayesTreeClique::shared_ptr>>
+      edges;
+  // collect the path of each clique to its first child
+  auto current = bayes_tree.roots().front();
+  while (current->children.size() > 0) {
+    auto child = current->children.front();
+    edges.push_back({current, child});
+    current = child;
+  }
+  spdlog::info("Edges: {}", edges.size());
+
   visualizer_rerun.drawBayesTree(
       "bayes_tree", bayes_tree, {0, 0, 0, 0.9}, 1.0, false);
+
+  visualizer_rerun.drawBayesTreeEdges(
+      "bayes_tree", edges, {{255, 255, 100, 0.9}}, 1.0, false);
   return 0;
 }
