@@ -26,7 +26,7 @@ int main() {
     rgba.resize(samples.size(), Eigen::Vector4f(255, 0, 0, 255));
 
     // viz.clear();
-    viz.drawPointsImpl("samples", samples, rgba, radius, true);
+    viz.drawPointsImpl("samples", samples, rgba, radius, {}, true);
 
     viz.render();
     // while(not viz.frameReady()) {

@@ -52,7 +52,8 @@ class VisualizerSFML : public Visualizer {
   void drawPointsImpl(const std::string& entity_path,
                       const std::vector<Point3>& points,
                       const std::vector<Eigen::Vector4f>& rgba,
-                      std::vector<float> radius,
+                      const std::vector<float>& radius,
+                      const std::vector<std::string>& labels,
                       bool is_static = false) override {
     for (size_t i = 0; i < points.size(); i++) {
       auto circle = std::make_shared<sf::CircleShape>(radius[i]);
@@ -125,7 +126,7 @@ class VisualizerSFML : public Visualizer {
 
   void drawLinesImpl(const std::string& entity_path,
                      const std::vector<std::pair<Point3, Point3>>& points_pairs,
-                     Eigen::Vector4f rgba,
+                     const std::vector<Eigen::Vector4f>& rgba,
                      float radius,
                      const std::vector<std::string>& labels,
                      const std::vector<std::string>& text) override;

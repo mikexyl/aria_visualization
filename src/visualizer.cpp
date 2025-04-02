@@ -37,6 +37,7 @@ void Visualizer::drawPoints(const std::string& entity_path,
                             const Values& values,
                             const std::vector<Eigen::Vector4f>& rgba,
                             std::vector<float> radius,
+                            std::vector<std::string> labels,
                             bool is_static) {
   std::vector<Point3> points;
   // convert all values to points
@@ -60,7 +61,8 @@ void Visualizer::drawPoints(const std::string& entity_path,
     radius_full = radius;
   }
 
-  drawPointsImpl(entity_path, points, rgba_full, radius_full, is_static);
+  drawPointsImpl(
+      entity_path, points, rgba_full, radius_full, labels, is_static);
 }
 
 std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix2d& cov) {

@@ -149,7 +149,7 @@ class Visualizer {
 
   void drawLines(const std::string& entity_path,
                  const std::vector<std::pair<Point3, Point3>>& points_pairs,
-                 Eigen::Vector4f rgba,
+                 const std::vector<Eigen::Vector4f>& rgba,
                  float radius,
                  const std::vector<std::string>& labels = {},
                  const std::vector<std::string>& text = {}) {
@@ -161,7 +161,7 @@ class Visualizer {
   virtual void drawLinesImpl(
       const std::string& entity_path,
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
-      Eigen::Vector4f rgba,
+      const std::vector<Eigen::Vector4f>& rgba,
       float radius,
       const std::vector<std::string>& labels,
       const std::vector<std::string>& text) {}
@@ -172,45 +172,40 @@ class Visualizer {
                   float radius,
                   bool is_static = false) {
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
-    drawPoints(entity_path, points, rgbs, radius, is_static);
+    drawPoints(entity_path, points, rgbs, {radius}, {}, is_static);
   }
 
   void drawPoints(const std::string& entity_path,
                   const std::vector<Point3>& points,
                   const std::vector<Eigen::Vector4f>& rgba,
-                  float radius,
+                  const std::vector<float>& radius,
+                  const std::vector<std::string>& labels,
                   bool is_static = false) {
-    std::vector<float> radii(points.size(), radius);
-    drawPointsImpl(entity_path, points, rgba, radii, is_static);
-  }
-
-  void drawPoints(const std::string& entity_path,
-                  const std::vector<Point3>& points,
-                  const std::vector<Eigen::Vector4f>& rgba,
-                  std::vector<float> radius,
-                  bool is_static = false) {
-    drawPointsImpl(entity_path, points, rgba, radius, is_static);
+    drawPointsImpl(entity_path, points, rgba, radius, labels, is_static);
   }
 
   virtual void drawPointsImpl(const std::string& entity_path,
                               const std::vector<Point3>& points,
                               const std::vector<Eigen::Vector4f>& rgba,
-                              std::vector<float> radius,
+                              const std::vector<float>& radius,
+                              const std::vector<std::string>& labels,
                               bool is_static = false) {}
 
   void drawPoints(const std::string& entity_path,
                   const std::vector<Point3>& points,
                   const Eigen::Vector4f& rgba,
-                  std::vector<float> radius,
+                  const std::vector<float>& radius,
+                  const std::vector<std::string>& labels,
                   bool is_static = false) {
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
-    drawPointsImpl(entity_path, points, rgbs, radius, is_static);
+    drawPointsImpl(entity_path, points, rgbs, radius, labels, is_static);
   }
 
   void drawPoints(const std::string& entity_path,
                   const Values& values,
                   const std::vector<Eigen::Vector4f>& rgba,
                   std::vector<float> radius,
+                  std::vector<std::string> labels = {},
                   bool is_static = false);
 
   static std::optional<Point3> getPoint3(const Key& key, const Values& values) {
@@ -260,7 +255,8 @@ class Visualizer {
       }
     }
 
-    drawLines(entity_path, points, rgba, radius);
+    std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
+    drawLines(entity_path, points, rgbs, radius);
   }
 
   template <typename ContainerT>
@@ -339,15 +335,25 @@ class Visualizer {
                                      const Eigen::Vector4f& rgba,
                                      float line_width,
                                      bool is_static) {}
-  
-                                    //  void drawBayesTree(const std::string& entity_path,
-                                      
+
+  //  void drawBayesTree(const std::string& entity_path,
 
   template <typename FactorType>
   void drawFactors(const std::string& entity_path,
                    const FactorGraph<FactorType>& factors,
                    const Values& values,
                    const Eigen::Vector4f& rgba,
+                   float line_width,
+                   bool show_labels = false) {
+    std::vector<Eigen::Vector4f> colors(factors.size(), rgba);
+    drawFactors(entity_path, factors, values, colors, line_width, show_labels);
+  }
+
+  template <typename FactorType>
+  void drawFactors(const std::string& entity_path,
+                   const FactorGraph<FactorType>& factors,
+                   const Values& values,
+                   const std::vector<Eigen::Vector4f>& rgba,
                    float line_width,
                    bool show_labels = false) {
     std::vector<std::pair<Point3, Point3>> points;

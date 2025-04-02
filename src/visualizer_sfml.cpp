@@ -111,16 +111,18 @@ void VisualizerSFML::renderTask(std::stop_token stop_token) {
 void VisualizerSFML::drawLinesImpl(
     const std::string& entity_path,
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
-    Eigen::Vector4f rgba,
+    const std::vector<Eigen::Vector4f>& rgba,
     float radius,
     const std::vector<std::string>& labels,
     const std::vector<std::string>& text) {
-  for (const auto& [p0, p1] : points_pairs) {
+  for (size_t i = 0; i < points_pairs.size(); i++) {
+    auto [p0, p1] = points_pairs[i];
+    auto color = rgba[i];
     auto line = std::make_shared<sf::VertexArray>(sf::LinesStrip, 2);
     (*line)[0].position = sf::Vector2f(p0.x(), p0.y());
     (*line)[1].position = sf::Vector2f(p1.x(), p1.y());
-    (*line)[0].color = sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]);
-    (*line)[1].color = sf::Color(rgba[0], rgba[1], rgba[2], rgba[3]);
+    (*line)[0].color = sf::Color(color[0], color[1], color[2], color[3]);
+    (*line)[1].color = sf::Color(color[0], color[1], color[2], color[3]);
     drawables_.push(line);
   }
 }

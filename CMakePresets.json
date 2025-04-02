@@ -17,7 +17,7 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
         "aria_common_DIR": "${sourceDir}/../aria_common/build",
         "rerun_sdk_DIR": "${sourceDir}/../rerun/install/lib/cmake/rerun_sdk",
-        "GTSAM_DIR": "${sourceDir}/../gtsam/build/original"
+        "GTSAM_DIR": "${sourceDir}/../gtsam/build/isam2_fast_marginal"
       }
     },
     {

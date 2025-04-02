@@ -6,8 +6,6 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "collection_adapters.hpp"
-
 using namespace gtsam;
 
 namespace aria::viz {
@@ -19,7 +17,7 @@ void VisualizerRerun::setTimeNSec(size_t timestamp) {
 void VisualizerRerun::connectPositions3D(
     const std::string& entity_path,
     const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& positions,
-    const Eigen::Vector4f& rgba,
+    const std::vector<Eigen::Vector4f>& rgba,
     float radius,
     const std::vector<std::string>& labels,
     bool clear,
@@ -36,7 +34,7 @@ void VisualizerRerun::connectPositions3D(
 
   rec_->log(entity_path,
             rerun::LineStrips3D(lines)
-                .with_colors({fromEigen(rgba)})
+                .with_colors(fromEigen(rgba))
                 .with_radii({rerun::components::Radius::ui_points(radius)})
                 .with_labels(labels));
 }
@@ -44,7 +42,7 @@ void VisualizerRerun::connectPositions3D(
 void VisualizerRerun::drawLinesImpl(
     const std::string& entity_path,
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
-    Eigen::Vector4f rgba,
+    const std::vector<Eigen::Vector4f>& rgba,
     float radius,
     const std::vector<std::string>& labels,
     const std::vector<std::string>& text) {
@@ -59,7 +57,8 @@ void VisualizerRerun::drawLinesImpl(
 void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
                                      const std::vector<Point3>& points,
                                      const std::vector<Eigen::Vector4f>& rgba,
-                                     std::vector<float> radius,
+                                     const std::vector<float>& radius,
+                                     const std::vector<std::string>& labels,
                                      bool is_static) {
   std::vector<rerun::Color> colors;
   for (size_t i = 0; i < rgba.size(); i++) {
@@ -76,10 +75,12 @@ void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
     radii.take_ownership(rerun::components::Radius::ui_points(r));
   }
 
-  rec_->log_with_static(
-      entity_path,
-      is_static,
-      rerun::Points3D(points_eigen).with_colors(colors).with_radii(radii));
+  rec_->log_with_static(entity_path,
+                        is_static,
+                        rerun::Points3D(points_eigen)
+                            .with_colors(colors)
+                            .with_radii(radii)
+                            .with_labels(labels));
 }
 
 void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
@@ -183,39 +184,6 @@ void VisualizerRerun::plotBenchmarkStats() {
     // Log the stats
     rec_->log("timing/" + label_with_index, rerun::Scalar(stat.mean));
   }
-}
-
-void VisualizerRerun::drawBayesTree(const std::string& entity_path,
-                                    const GaussianBayesTree& bayes_tree,
-                                    const Eigen::Vector4f& rgba,
-                                    float line_width,
-                                    bool is_static) {
-  std::vector<std::string> cliques;
-  std::vector<rerun::components::GraphEdge> edges;
-  std::vector<rerun::components::Color> colors;
-  for (auto const& [key, clique] : bayes_tree.nodes()) {
-    if (!clique) continue;
-    cliques.push_back(fmt::format("{}", *clique));
-    for (auto const& child : clique->children) {
-      if (!child) continue;
-      edges.push_back({fmt::format("{}", *clique), fmt::format("{}", *child)});
-    }
-    // if no parent, then it is the root then it's red
-    if (clique->parent() == nullptr) {
-      colors.push_back({255, 0, 0, 255});
-    } else {
-      colors.push_back({255, 255, 255, 255});
-    }
-  }
-
-  rec_->log_with_static(
-      entity_path,
-      is_static,
-      rerun::GraphNodes(cliques).with_labels(cliques).with_colors(colors));
-  rec_->log_with_static(entity_path,
-                        is_static,
-                        rerun::GraphEdges(edges).with_graph_type(
-                            rerun::components::GraphType::Directed));
 }
 
 void VisualizerRerun::drawBayesTreeEdges(

@@ -53,8 +53,9 @@ int main() {
   std::vector<Eigen::Vector4f> rgba(values.size(),
                                     Eigen::Vector4f(255, 0, 0, 255));
   viz.drawPoints(
-      "samples", values, {Eigen::Vector4f(255, 0, 0, 255)}, {10}, true);
-  viz.drawPoints("gt", result, {Eigen::Vector4f(0, 255, 0, 255)}, {10}, true);
+      "samples", values, {Eigen::Vector4f(255, 0, 0, 255)}, {10}, {}, true);
+  viz.drawPoints(
+      "gt", result, {Eigen::Vector4f(0, 255, 0, 255)}, {10}, {}, true);
   viz.drawFactors(
       "graph", graph, result, Eigen::Vector4f(0, 255, 0, 255), 2, true);
 

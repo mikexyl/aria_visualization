@@ -1,29 +1,28 @@
 #pragma once
 
-#include <rerun.hpp>
-
+#include <cassert>
 #include <eigen3/Eigen/Core>
 #include <opencv2/core.hpp>
-
-#include <cassert>
+#include <rerun.hpp>
 
 // Adapters so we can log eigen vectors as rerun positions:
 template <>
 struct rerun::CollectionAdapter<rerun::Position3D,
                                 std::vector<Eigen::Vector3f>> {
   /// Borrow for non-temporary.
-  Collection<rerun::Position3D>
-  operator()(const std::vector<Eigen::Vector3f> &container) {
+  Collection<rerun::Position3D> operator()(
+      const std::vector<Eigen::Vector3f>& container) {
     return Collection<rerun::Position3D>::borrow(container.data(),
                                                  container.size());
   }
 
   // Do a full copy for temporaries (otherwise the data might be deleted when
   // the temporary is destroyed).
-  Collection<rerun::Position3D>
-  operator()(std::vector<Eigen::Vector3f> &&container) {
+  Collection<rerun::Position3D> operator()(
+      std::vector<Eigen::Vector3f>&& container) {
     std::vector<rerun::Position3D> positions(container.size());
-    memcpy(positions.data(), container.data(),
+    memcpy(positions.data(),
+           container.data(),
            container.size() * sizeof(Eigen::Vector3f));
     return Collection<rerun::Position3D>::take_ownership(std::move(positions));
   }
@@ -38,20 +37,22 @@ struct rerun::CollectionAdapter<rerun::Position3D, Eigen::Matrix3Xf> {
                     Eigen::Matrix3Xf::RowsAtCompileTime);
 
   /// Borrow for non-temporary.
-  Collection<rerun::Position3D> operator()(const Eigen::Matrix3Xf &matrix) {
+  Collection<rerun::Position3D> operator()(const Eigen::Matrix3Xf& matrix) {
     static_assert(alignof(rerun::Position3D) <=
                   alignof(Eigen::Matrix3Xf::Scalar));
     return Collection<rerun::Position3D>::borrow(
         // Cast to void because otherwise Rerun will try to do above sanity
         // checks with the wrong type (scalar).
-        reinterpret_cast<const void *>(matrix.data()), matrix.cols());
+        reinterpret_cast<const void*>(matrix.data()),
+        matrix.cols());
   }
 
   // Do a full copy for temporaries (otherwise the data might be deleted when
   // the temporary is destroyed).
-  Collection<rerun::Position3D> operator()(Eigen::Matrix3Xf &&matrix) {
+  Collection<rerun::Position3D> operator()(Eigen::Matrix3Xf&& matrix) {
     std::vector<rerun::Position3D> positions(matrix.cols());
-    memcpy(positions.data(), matrix.data(),
+    memcpy(positions.data(),
+           matrix.data(),
            matrix.size() * sizeof(rerun::Position3D));
     return Collection<rerun::Position3D>::take_ownership(std::move(positions));
   }
@@ -59,9 +60,10 @@ struct rerun::CollectionAdapter<rerun::Position3D, Eigen::Matrix3Xf> {
 
 // Adapters so we can borrow an OpenCV image easily into Rerun images without
 // copying:
-template <> struct rerun::CollectionAdapter<uint8_t, cv::Mat> {
+template <>
+struct rerun::CollectionAdapter<uint8_t, cv::Mat> {
   /// Borrow for non-temporary.
-  Collection<uint8_t> operator()(const cv::Mat &img) {
+  Collection<uint8_t> operator()(const cv::Mat& img) {
     assert("OpenCV matrix was expected have bit depth CV_U8" &&
            CV_MAT_DEPTH(img.type()) == CV_8U);
 
@@ -70,7 +72,7 @@ template <> struct rerun::CollectionAdapter<uint8_t, cv::Mat> {
 
   // Do a full copy for temporaries (otherwise the data might be deleted when
   // the temporary is destroyed).
-  Collection<uint8_t> operator()(cv::Mat &&img) {
+  Collection<uint8_t> operator()(cv::Mat&& img) {
     assert("OpenCV matrix was expected have bit depth CV_U8" &&
            CV_MAT_DEPTH(img.type()) == CV_8U);
 
@@ -80,10 +82,20 @@ template <> struct rerun::CollectionAdapter<uint8_t, cv::Mat> {
   }
 };
 
-inline rerun::Color fromEigen(const Eigen::Vector3f &color, float alpha = 1.0) {
-  return rerun::Color(color(0), color(1), color(2), alpha * 255);
+inline rerun::Color fromEigen(const Eigen::Vector3f& color,
+                              float alpha = 255.0) {
+  return rerun::Color(color(0), color(1), color(2), alpha);
 }
 
 inline rerun::Color fromEigen(const Eigen::Vector4f& rgba) {
-  return rerun::Color(rgba(0), rgba(1), rgba(2), rgba(3) * 255);
+  return rerun::Color(rgba(0), rgba(1), rgba(2), rgba(3));
+}
+
+inline rerun::Collection<rerun::Color> fromEigen(
+    const std::vector<Eigen::Vector4f>& color) {
+  std::vector<rerun::Color> colors;
+  for (const auto& c : color) {
+    colors.push_back(fromEigen(c));
+  }
+  return rerun::Collection<rerun::Color>::take_ownership(std::move(colors));
 }

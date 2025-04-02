@@ -18,6 +18,7 @@ find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
 
 # install TGUI by fetch content
 include(FetchContent)
+
 # set TGUI_BACKEND to SFML
 set(TGUI_BACKEND "SFML_GRAPHICS")
 FetchContent_Declare(
@@ -26,9 +27,14 @@ FetchContent_Declare(
   GIT_TAG 1.x)
 FetchContent_MakeAvailable(tgui)
 
+# Find Graphviz using pkg-config
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GVC REQUIRED libgvc)
+
 set(INCLUDES
   ${OpenCV_INCLUDE_DIRS}
-)
+  ${TBB_INCLUDE_DIRS}
+  ${GVC_INCLUDE_DIRS})
 
 set(DEPENDENCIES
   rerun_sdk
@@ -36,9 +42,9 @@ set(DEPENDENCIES
   gtsam
   aria_common
   sfml-graphics
-  TBB::tbb TBB::tbbmalloc
   tgui
-)
+  ${TBB_LIBRARIES}
+  ${GVC_LIBRARIES})
 
 add_library(${PROJECT_NAME} STATIC
   src/visualizer.cpp
