@@ -153,7 +153,20 @@ class Visualizer {
                  float radius,
                  const std::vector<std::string>& labels = {},
                  const std::vector<std::string>& text = {}) {
-    drawLinesImpl(entity_path, points_pairs, rgba, radius, labels, text);
+    if (points_pairs.empty()) {
+      return;
+    }
+    auto colors = rgba;
+    if (rgba.size() == 1) {
+      colors.resize(points_pairs.size(), rgba[0]);
+    } else {
+      CHECK(colors.size() == points_pairs.size(),
+            fmt::format("{} colors.size() != points_pairs.size() {}",
+                        colors.size(),
+                        points_pairs.size()));
+    }
+
+    drawLinesImpl(entity_path, points_pairs, colors, radius, labels, text);
   }
 
   virtual void drawScalar(const std::string& entity_path, double value) {}
@@ -358,10 +371,14 @@ class Visualizer {
                    bool show_labels = false) {
     std::vector<std::pair<Point3, Point3>> points;
     std::vector<std::string> labels;
-    for (const auto& factor : factors) {
+    std::vector<Eigen::Vector4f> colors;
+    for (size_t i = 0; i < factors.size(); i++) {
+      auto factor = factors.at(i);
       if (factor == nullptr) {
         continue;
       }
+
+      colors.push_back(rgba.at(i));
       auto keys = factor->keys();
       CHECK(keys.size() <= 2,
             "Not implemented for factors with more than 2 keys");
@@ -389,7 +406,7 @@ class Visualizer {
 
     drawLines(entity_path,
               points,
-              rgba,
+              colors,
               line_width,
               show_labels ? labels : std::vector<std::string>{});
   }

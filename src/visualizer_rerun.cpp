@@ -11,7 +11,7 @@ using namespace gtsam;
 namespace aria::viz {
 
 void VisualizerRerun::setTimeNSec(size_t timestamp) {
-  rec_->set_time_nanos("time", timestamp);
+  rec_->set_time_timestamp_nanos_since_epoch("time", timestamp);
 }
 
 void VisualizerRerun::connectPositions3D(
@@ -179,10 +179,10 @@ void VisualizerRerun::plotBenchmarkStats() {
 
     rec_->log_static(
         "timing/" + label_with_index,
-        rerun::SeriesLine().with_color({color(0), color(1), color(2)}));
+        rerun::SeriesLines().with_colors({{color(0), color(1), color(2)}}));
 
     // Log the stats
-    rec_->log("timing/" + label_with_index, rerun::Scalar(stat.mean));
+    rec_->log("timing/" + label_with_index, rerun::Scalars({stat.mean}));
   }
 }
 

@@ -51,7 +51,7 @@ class VisualizerRerun : public Visualizer {
                  params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-    rec_->connect_tcp().exit_on_failure();
+    rec_->connect_grpc().exit_on_failure();
 
     rec_->log_static(
         "map",
@@ -144,13 +144,13 @@ class VisualizerRerun : public Visualizer {
     for (const auto& [label, value] : data) {
       std::stringstream ss;
       ss << entity_path << "/" << label;
-      rec_->log(ss.str(), rerun::Scalar(static_cast<double>(value)));
+      rec_->log(ss.str(), rerun::Scalars({static_cast<double>(value)}));
     }
   }
 
   void drawScalar(const std::string& entity_path, double value) override {
     LOG_DATA(entity_path, value);
-    rec_->log(entity_path, rerun::Scalar(value));
+    rec_->log(entity_path, rerun::Scalars({value}));
   }
 
   template <class BayesTree>
