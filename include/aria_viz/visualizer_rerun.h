@@ -51,7 +51,7 @@ class VisualizerRerun : public Visualizer {
                  params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-    rec_->connect_grpc().exit_on_failure();
+    rec_->connect_grpc("rerun+http://127.0.0.1:9876/proxy").exit_on_failure();
 
     rec_->log_static(
         "map",
