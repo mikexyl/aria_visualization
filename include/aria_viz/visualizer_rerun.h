@@ -137,7 +137,7 @@ class VisualizerRerun : public Visualizer {
 
   rerun::RecordingStream* rec() { return rec_.get(); }
 
-  void plotBenchmarkStats();
+  void plotBenchmarkStats() override;
 
   template <typename T>
   void plotLabeledData(const std::string& entity_path, const T& data) {
@@ -150,7 +150,7 @@ class VisualizerRerun : public Visualizer {
 
   void drawScalar(const std::string& entity_path, double value) override {
     LOG_DATA(entity_path, value);
-    rec_->log(entity_path, rerun::Scalars({value}));
+    rec_->log(entity_path, rerun::Scalars(std::vector<double>{value}));
   }
 
   template <class BayesTree>

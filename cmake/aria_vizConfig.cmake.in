@@ -6,6 +6,9 @@ include(CMakeFindDependencyMacro)
 set(rerun_sdk_DIR @rerun_sdk_DIR@)
 find_dependency(rerun_sdk)
 
+# find X11
+find_package(X11 REQUIRED)
+
 set(aria_common_DIR @aria_common_DIR@)
 find_dependency(aria_common)
 

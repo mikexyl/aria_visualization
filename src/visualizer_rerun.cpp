@@ -182,7 +182,7 @@ void VisualizerRerun::plotBenchmarkStats() {
         rerun::SeriesLines().with_colors({{color(0), color(1), color(2)}}));
 
     // Log the stats
-    rec_->log("timing/" + label_with_index, rerun::Scalars({stat.mean}));
+    rec_->log("timing/" + label_with_index, rerun::Scalars(std::vector<double>{stat.mean}));
   }
 }
 

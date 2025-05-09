@@ -147,6 +147,8 @@ class Visualizer {
 
   void toggleStepByStep() { params_.step_by_step = !params_.step_by_step; }
 
+  virtual void plotBenchmarkStats() {}
+
   void drawLines(const std::string& entity_path,
                  const std::vector<std::pair<Point3, Point3>>& points_pairs,
                  const std::vector<Eigen::Vector4f>& rgba,
@@ -401,6 +403,10 @@ class Visualizer {
         } else {
           labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
         }
+      } else {
+        LOG_FATAL("Factor has no value for key {} or {}",
+                  DefaultKeyFormatter(keys[0]),
+                  DefaultKeyFormatter(keys[1]));
       }
     }
 
