@@ -2,29 +2,28 @@
 
 namespace aria::viz {
 std::map<int, Eigen::Vector3f> AgentColorMap::color_map = {
-    {0, Eigen::Vector3f(255, 0, 0)},
-    {1, Eigen::Vector3f(0, 255, 0)},
-    // make it cyan-ish to be more visible in black background
-    {2, Eigen::Vector3f(100, 100, 255)},
-    {3, Eigen::Vector3f(255, 255, 0)},
-    {4, Eigen::Vector3f(255, 0, 255)},
-    {5, Eigen::Vector3f(0, 255, 255)},
-    {6, Eigen::Vector3f(63, 255, 128)},
-    {7, Eigen::Vector3f(128, 0, 0)},
-    {8, Eigen::Vector3f(0, 128, 0)},
-    {9, Eigen::Vector3f(0, 0, 128)},
-    {10, Eigen::Vector3f(128, 128, 0)},
-    {11, Eigen::Vector3f(128, 0, 128)},
-    {12, Eigen::Vector3f(0, 128, 128)},
-    {13, Eigen::Vector3f(128, 128, 128)},
-    {14, Eigen::Vector3f(64, 0, 0)},
-    {15, Eigen::Vector3f(0, 64, 0)},
-    {16, Eigen::Vector3f(0, 0, 64)},
-    {17, Eigen::Vector3f(64, 64, 0)},
-    {18, Eigen::Vector3f(64, 0, 64)},
-    {19, Eigen::Vector3f(0, 64, 64)},
-    {20, Eigen::Vector3f(64, 64, 64)}};
-
+    {0, Eigen::Vector3f(255, 64, 64)},     // bright red
+    {1, Eigen::Vector3f(64, 255, 64)},     // bright green
+    {2, Eigen::Vector3f(128, 192, 255)},   // cyan-ish, bright for dark bg
+    {3, Eigen::Vector3f(255, 255, 64)},    // yellow
+    {4, Eigen::Vector3f(255, 64, 255)},    // magenta
+    {5, Eigen::Vector3f(64, 255, 255)},    // cyan
+    {6, Eigen::Vector3f(127, 255, 127)},   // mint green
+    {7, Eigen::Vector3f(192, 64, 64)},     // soft red
+    {8, Eigen::Vector3f(64, 192, 64)},     // soft green
+    {9, Eigen::Vector3f(64, 64, 192)},     // soft blue
+    {10, Eigen::Vector3f(192, 192, 64)},   // olive
+    {11, Eigen::Vector3f(192, 64, 192)},   // violet
+    {12, Eigen::Vector3f(64, 192, 192)},   // light teal
+    {13, Eigen::Vector3f(192, 192, 192)},  // bright gray
+    {14, Eigen::Vector3f(255, 128, 64)},   // orange
+    {15, Eigen::Vector3f(128, 255, 64)},   // lime
+    {16, Eigen::Vector3f(64, 128, 255)},   // light blue
+    {17, Eigen::Vector3f(255, 200, 64)},   // gold
+    {18, Eigen::Vector3f(255, 64, 128)},   // pink
+    {19, Eigen::Vector3f(64, 255, 128)},   // aqua green
+    {20, Eigen::Vector3f(180, 180, 255)}   // bluish white
+};
 const Eigen::Vector4f ColorMap::kGreen = Eigen::Vector4f(0, 255, 0, 255);
 const Eigen::Vector4f ColorMap::kRed = Eigen::Vector4f(255, 0, 0, 255);
 const Eigen::Vector4f ColorMap::kBlue = Eigen::Vector4f(0, 0, 255, 255);

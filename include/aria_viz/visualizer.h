@@ -29,12 +29,12 @@ struct ColorMap {
     // set random seed
     std::seed_seq seed_seq(seed.begin(), seed.end());
     std::mt19937 gen(seed_seq);
-    std::uniform_int_distribution<> dis(0, 150);
+    std::uniform_int_distribution<> dis(0, 255);
 
     // generate a random vector from 0 to 256
-    float r = dis(gen) + 100;
-    float g = dis(gen) + 100;
-    float b = dis(gen) + 100;
+    float r = dis(gen);
+    float g = dis(gen);
+    float b = dis(gen);
     return Eigen::Vector3f(r, g, b);
   }
 
@@ -69,7 +69,7 @@ struct AgentColorMap : public ColorMap {
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 
-  static Eigen::Vector4f get(AgentId agent_id, float alpha) {
+  static Eigen::Vector4f get(AgentId agent_id, float alpha = 255) {
     if (color_map.find(agent_id) == color_map.end()) {
       color_map[agent_id] = random();
     }
