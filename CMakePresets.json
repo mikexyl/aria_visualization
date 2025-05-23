@@ -10,7 +10,7 @@
       "name": "config-Release",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
-      "toolchainFile": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "toolchainFile": "~/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_C_COMPILER_LAUNCHER": "ccache",

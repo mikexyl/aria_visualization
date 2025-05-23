@@ -12,7 +12,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(SFML COMPONENTS graphics REQUIRED)
+find_package(SFML COMPONENTS Graphics REQUIRED)
 find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
 
 include(FetchContent)
@@ -24,10 +24,25 @@ if(NOT rerun_sdk_FOUND)
   FetchContent_Declare(rerun_sdk URL
     https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
   FetchContent_MakeAvailable(rerun_sdk)
+  # Export rerun_sdk target if it exists
+  if(TARGET rerun_sdk)
+    export(TARGETS rerun_sdk
+      FILE "${CMAKE_CURRENT_BINARY_DIR}/rerun_sdkTargets.cmake"
+    )
+  endif()
 else()
   message(STATUS "rerun_sdk found: ${rerun_sdk_INCLUDE_DIRS}")
   message(STATUS "rerun_sdk version: ${rerun_sdk_VERSION}")
+
 endif()
+
+if(rerun_sdk_VERSION VERSION_GREATER 0.23)
+  message(STATUS "rerun_sdk version is newer than 0.23")
+else()
+  message(STATUS "rerun_sdk version is 0.22 or older")
+  add_definitions(-DRERUN_SDK_OLD_VERSION)
+endif()
+
 
 # set TGUI_BACKEND to SFML
 set(TGUI_BACKEND "SFML_GRAPHICS")
@@ -60,7 +75,6 @@ set(DEPENDENCIES
   ${OpenCV_LIBS}
   gtsam
   aria_common
-  sfml-graphics
   tgui
   ${TBB_LIBRARIES}
   ${GVC_LIBRARIES})
@@ -68,7 +82,6 @@ set(DEPENDENCIES
 add_library(${PROJECT_NAME} STATIC
   src/visualizer.cpp
   src/visualizer_rerun.cpp
-  src/visualizer_sfml.cpp
 )
 
 # Specify include directories
@@ -91,9 +104,11 @@ add_subdirectory(tests)
 # export(EXPORT rerun_sdkTargets FILE _deps/rerun_sdk-build/rerun_sdkTargets.cmake)
 
 # export tgui
+if(NOT TGUI_FOUND)
 export(TARGETS tgui
   FILE _deps/tgui-build/tguiTargets.cmake
 )
+endif()
 
 # Export the target for use in other projects
 export(TARGETS ${PROJECT_NAME}
