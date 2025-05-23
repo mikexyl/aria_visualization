@@ -41,9 +41,11 @@ class VisualizerRerun : public Visualizer {
 
     std::string app_id;
     std::string recording_id;
+    bool send_by_column{false};
   };
 
-  VisualizerRerun(Params params) : agent_id_(std::nullopt) {
+  VisualizerRerun(Params params)
+      : agent_id_(std::nullopt), send_by_column_(params.send_by_column) {
     // Create a new `RecordingStream` which sends data over TCP to the
     // viewer process.
     spdlog::info("Connecting to rerun server as app_id: {}, recording_id: {}",
@@ -256,6 +258,8 @@ class VisualizerRerun : public Visualizer {
   std::unique_ptr<rerun::RecordingStream> rec_;
 
   std::optional<AgentId> agent_id_;
+
+  bool send_by_column_{false};
 };
 
 }  // namespace aria::viz

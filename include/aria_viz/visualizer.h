@@ -359,9 +359,16 @@ class Visualizer {
                    const Values& values,
                    const Eigen::Vector4f& rgba,
                    float line_width,
-                   bool show_labels = false) {
+                   bool show_labels = false,
+                   bool ignore_missing_values = false) {
     std::vector<Eigen::Vector4f> colors(factors.size(), rgba);
-    drawFactors(entity_path, factors, values, colors, line_width, show_labels);
+    drawFactors(entity_path,
+                factors,
+                values,
+                colors,
+                line_width,
+                show_labels,
+                ignore_missing_values);
   }
 
   template <typename FactorType>
@@ -370,7 +377,8 @@ class Visualizer {
                    const Values& values,
                    const std::vector<Eigen::Vector4f>& rgba,
                    float line_width,
-                   bool show_labels = false) {
+                   bool show_labels = false,
+                   bool ignore_missing_values = false) {
     std::vector<std::pair<Point3, Point3>> points;
     std::vector<std::string> labels;
     std::vector<Eigen::Vector4f> colors;
@@ -380,7 +388,6 @@ class Visualizer {
         continue;
       }
 
-      colors.push_back(rgba.at(i));
       auto keys = factor->keys();
       CHECK(keys.size() <= 2,
             "Not implemented for factors with more than 2 keys");
@@ -403,7 +410,11 @@ class Visualizer {
         } else {
           labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
         }
+        colors.push_back(rgba.at(i));
       } else {
+        if (ignore_missing_values) {
+          continue;
+        }
         LOG_FATAL("Factor has no value for key {} or {}",
                   DefaultKeyFormatter(keys[0]),
                   DefaultKeyFormatter(keys[1]));

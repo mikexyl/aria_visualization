@@ -113,7 +113,8 @@ void Visualizer::drawFactors(const std::string& entity_path,
                              const Values& values,
                              const Eigen::Vector4f& rgba,
                              float line_width,
-                             bool is_static);
+                             bool show_labels,
+                             bool ignore_missing_values);
 
 template <>
 void Visualizer::drawFactors(const std::string& entity_path,
@@ -121,6 +122,7 @@ void Visualizer::drawFactors(const std::string& entity_path,
                              const Values& values,
                              const Eigen::Vector4f& rgba,
                              float line_width,
-                             bool is_static);
+                             bool show_labels,
+                             bool ignore_missing_values);
 
 }  // namespace aria::viz
