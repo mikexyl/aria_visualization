@@ -12,20 +12,39 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(rerun_sdk REQUIRED)
 find_package(SFML COMPONENTS graphics REQUIRED)
 find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
 
-# install TGUI by fetch content
 include(FetchContent)
+
+find_package(rerun_sdk QUIET)
+
+if(NOT rerun_sdk_FOUND)
+  message(STATUS "rerun_sdk not found, downloading...")
+  FetchContent_Declare(rerun_sdk URL
+    https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
+  FetchContent_MakeAvailable(rerun_sdk)
+else()
+  message(STATUS "rerun_sdk found: ${rerun_sdk_INCLUDE_DIRS}")
+  message(STATUS "rerun_sdk version: ${rerun_sdk_VERSION}")
+endif()
 
 # set TGUI_BACKEND to SFML
 set(TGUI_BACKEND "SFML_GRAPHICS")
-FetchContent_Declare(
-  tgui
-  GIT_REPOSITORY https://github.com/texus/TGUI.git
-  GIT_TAG 1.x)
-FetchContent_MakeAvailable(tgui)
+find_package(TGUI QUIET)
+
+if(NOT TGUI_FOUND)
+  message(STATUS "TGUI not found, downloading...")
+  set(TGUI_BACKEND SFML_GRAPHICS)
+  FetchContent_Declare(
+    tgui
+    GIT_REPOSITORY https://github.com/texus/TGUI.git
+    GIT_TAG 1.x)
+  FetchContent_MakeAvailable(tgui)
+else()
+  message(STATUS "TGUI found: ${TGUI_INCLUDE_DIRS}")
+  message(STATUS "TGUI version: ${TGUI_VERSION}")
+endif()
 
 # Find Graphviz using pkg-config
 find_package(PkgConfig REQUIRED)

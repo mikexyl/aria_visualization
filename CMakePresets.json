@@ -10,13 +10,13 @@
       "name": "config-Release",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
+      "toolchainFile": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_C_COMPILER_LAUNCHER": "ccache",
         "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
         "aria_common_DIR": "${sourceDir}/../aria_common/build",
-        "rerun_sdk_DIR": "${sourceDir}/../rerun/install/lib/cmake/rerun_sdk",
         "GTSAM_DIR": "${sourceDir}/../gtsam/build/original"
       }
     },
