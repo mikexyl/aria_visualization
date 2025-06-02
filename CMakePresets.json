@@ -16,8 +16,7 @@
         "CMAKE_C_COMPILER_LAUNCHER": "ccache",
         "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
-        "aria_common_DIR": "${sourceDir}/../aria_common/build",
-        "GTSAM_DIR": "${sourceDir}/../gtsam/build/original"
+        "aria_common_DIR": "${sourceDir}/../aria_common/build"
       }
     },
     {

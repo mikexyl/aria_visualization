@@ -3,8 +3,14 @@
 
 include(CMakeFindDependencyMacro)
 
-#set(rerun_sdk_DIR @rerun_sdk_DIR@)
-#find_dependency(rerun_sdk)
+set(rerun_sdk_DIR @rerun_sdk_DIR@)
+find_dependency(rerun_sdk)
+if(rerun_sdk_VERSION VERSION_GREATER 0.23)
+  message(STATUS "rerun_sdk version is newer than 0.23")
+else()
+  message(STATUS "rerun_sdk version is 0.22 or older")
+  add_definitions(-DRERUN_SDK_OLD_VERSION)
+endif()
 
 # find X11
 find_package(X11 REQUIRED)
@@ -18,8 +24,6 @@ find_dependency(SFML COMPONENTS Graphics Window System)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GVC REQUIRED libgvc)
 
-find_package(tgui QUIET)
-
-include("${CMAKE_CURRENT_LIST_DIR}/_deps/tgui-build/tguiTargets.cmake")
+find_package(TGUI REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")

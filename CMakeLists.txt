@@ -46,20 +46,7 @@ endif()
 
 # set TGUI_BACKEND to SFML
 set(TGUI_BACKEND "SFML_GRAPHICS")
-find_package(TGUI QUIET)
-
-if(NOT TGUI_FOUND)
-  message(STATUS "TGUI not found, downloading...")
-  set(TGUI_BACKEND SFML_GRAPHICS)
-  FetchContent_Declare(
-    tgui
-    GIT_REPOSITORY https://github.com/texus/TGUI.git
-    GIT_TAG 1.x)
-  FetchContent_MakeAvailable(tgui)
-else()
-  message(STATUS "TGUI found: ${TGUI_INCLUDE_DIRS}")
-  message(STATUS "TGUI version: ${TGUI_VERSION}")
-endif()
+find_package(TGUI REQUIRED)
 
 # Find Graphviz using pkg-config
 find_package(PkgConfig REQUIRED)
@@ -115,20 +102,23 @@ export(TARGETS ${PROJECT_NAME}
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
-# install(TARGETS ${PROJECT_NAME}
-# EXPORT ${PROJECT_NAME}Targets
-# RUNTIME DESTINATION bin
-# LIBRARY DESTINATION lib
-# ARCHIVE DESTINATION lib
-# INCLUDES DESTINATION include
-# )
+install(TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION include
+)
 
-# # Skip installing headers since they are used in-place
-# # Install the export file for the target
-# install(EXPORT ${PROJECT_NAME}Targets
-# FILE ${PROJECT_NAME}Targets.cmake
-# DESTINATION lib/cmake/${PROJECT_NAME}
-# )
+# Skip installing headers since they are used in-place
+# Install the export file for the target
+install(EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
+  DESTINATION lib/cmake/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/aria_viz
+  DESTINATION include)
 
 # Configure and install the package configuration file
 include(CMakePackageConfigHelpers)
