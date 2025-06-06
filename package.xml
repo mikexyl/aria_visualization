@@ -2,7 +2,7 @@
 <package format="2">
   <name>aria_viz</name>
   <version>0.0.1</version>
-  <description>aria_dopt</description>
+  <description>aria_viz</description>
 
   <maintainer email="liu.xiangyu@ucy.ac.cy">Mike Xiangyu Liu</maintainer>
   <license>BSD</license>

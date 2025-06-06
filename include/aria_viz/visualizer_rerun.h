@@ -4,8 +4,6 @@
 #include <graphviz/gvc.h>
 #include <gtsam/linear/GaussianBayesTree.h>
 
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/RenderTexture.hpp>
 #include <opencv2/imgproc.hpp>
 #include <rerun.hpp>
 
@@ -53,11 +51,7 @@ class VisualizerRerun : public Visualizer {
                  params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-        #ifndef RERUN_SDK_OLD_VERSION
     rec_->connect_grpc("rerun+http://127.0.0.1:9876/proxy").exit_on_failure();
-        #else
-    rec_->connect_tcp("rerun+http://127.0.0.1:9876/proxy").exit_on_failure();
-    #endif
 
     rec_->log_static(
         "map",
@@ -150,13 +144,13 @@ class VisualizerRerun : public Visualizer {
     for (const auto& [label, value] : data) {
       std::stringstream ss;
       ss << entity_path << "/" << label;
-      rec_->log(ss.str(), rerun::Scalar(value));
+      rec_->log(ss.str(), rerun::Scalars(std::vector<double>{value}));
     }
   }
 
   void drawScalar(const std::string& entity_path, double value) override {
     LOG_DATA(entity_path, value);
-    rec_->log(entity_path, rerun::Scalar(value));
+    rec_->log(entity_path, rerun::Scalars(std::vector<double>{value}));
   }
 
   template <class BayesTree>

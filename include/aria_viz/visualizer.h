@@ -70,10 +70,11 @@ struct AgentColorMap : public ColorMap {
   }
 
   static Eigen::Vector4f get(AgentId agent_id, float alpha = 255) {
-    if (color_map.find(agent_id) == color_map.end()) {
-      color_map[agent_id] = random();
+    int agent_id_int = static_cast<int>(agent_id - 'a');
+    if (color_map.find(agent_id_int) == color_map.end()) {
+      color_map[agent_id_int] = random();
     }
-    auto color = color_map[agent_id];
+    auto color = color_map[agent_id_int];
     return Eigen::Vector4f(color(0), color(1), color(2), alpha);
   }
 };
