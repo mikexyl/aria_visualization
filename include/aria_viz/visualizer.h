@@ -7,6 +7,7 @@
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <Eigen/Eigen>
 #include <opencv2/highgui.hpp>
@@ -429,6 +430,13 @@ class Visualizer {
               show_labels ? labels : std::vector<std::string>{});
   }
 
+  void drawTf(const std::string& entity_path,
+              Pose3 tf,
+              float axis_length = 1.f,
+              bool is_static = false) {
+    drawTfImpl(entity_path, tf, axis_length, is_static);
+  }
+
  protected:
   virtual void step() {
     // set a keyboard callback for R
@@ -436,6 +444,13 @@ class Visualizer {
     if (key == 'r') {
       toggleStepByStep();
     }
+  }
+
+  virtual void drawTfImpl(const std::string& entity_path,
+                          const Pose3& tf,
+                          float axis_length = 1.f,
+                          bool is_static = false) {
+    // default implementation does nothing
   }
 
  protected:

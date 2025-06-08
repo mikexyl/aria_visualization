@@ -206,6 +206,12 @@ class VisualizerRerun : public Visualizer {
   void drawImage(const std::string& entity_path,
                  const cv::Mat& image,
                  bool is_static = false) {
+    // skip if image is empty
+    if (image.empty()) {
+      spdlog::warn("Skipping empty image for entity: {}", entity_path);
+      return;
+    }
+
     cv::Mat rgba32;
     if (image.type() == CV_8UC3) {
       cv::cvtColor(image, rgba32, cv::COLOR_BGR2RGBA);
@@ -220,7 +226,7 @@ class VisualizerRerun : public Visualizer {
     this->rec_->log_with_static(
         entity_path,
         is_static,
-        rerun::Image::from_rgba32(image,
+        rerun::Image::from_rgba32(rgba32,
                                   {static_cast<uint32_t>(image.cols),
                                    static_cast<uint32_t>(image.rows)}));
   }
@@ -251,6 +257,11 @@ class VisualizerRerun : public Visualizer {
       const std::vector<std::string>& labels = {},
       bool clear = false,
       const std::vector<std::string>& text = {});
+
+  void drawTfImpl(const std::string& entity_path,
+                  const Pose3& tf,
+                  float axis_length = 1.f,
+                  bool is_static = false) override;
 
  private:
   std::unique_ptr<rerun::RecordingStream> rec_;
