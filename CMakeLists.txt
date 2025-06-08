@@ -13,6 +13,7 @@ find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(TBB 4.4 COMPONENTS tbb tbbmalloc)
+find_package(spdlog REQUIRED)
 
 include(FetchContent)
 
@@ -33,6 +34,7 @@ set(DEPENDENCIES
   gtsam
   aria_common
   ${TBB_LIBRARIES}
+  spdlog::spdlog
   )
 
 add_library(${PROJECT_NAME} STATIC

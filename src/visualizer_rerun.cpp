@@ -237,4 +237,25 @@ void VisualizerRerun::drawBayesTreeEdges(
   //         .with_graph_type(rerun::components::GraphType::Directed));
 }
 
+void VisualizerRerun::drawTfImpl(const std::string& entity_path,
+                                 const Pose3& tf,
+                                 float axis_length,
+                                 bool is_static) {
+  // Convert Pose3 to rerun::Transform3D
+  auto transform =
+      rerun::Transform3D()
+          .with_translation({static_cast<float>(tf.x()),
+                             static_cast<float>(tf.y()),
+                             static_cast<float>(tf.z())})
+          .with_quaternion(rerun::datatypes::Quaternion::from_wxyz(
+              {static_cast<float>(tf.rotation().toQuaternion().w()),
+               static_cast<float>(tf.rotation().toQuaternion().x()),
+               static_cast<float>(tf.rotation().toQuaternion().y()),
+               static_cast<float>(tf.rotation().toQuaternion().z())}))
+          .with_axis_length(axis_length);
+
+  // Log the transform to the RecordingStream
+  rec_->log_with_static(entity_path, is_static, transform);
+}
+
 }  // namespace aria::viz
