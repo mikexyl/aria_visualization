@@ -22,7 +22,9 @@ class VisualizerRerun : public Visualizer {
   class Params : public Visualizer::Params {
    public:
     Params(std::optional<std::string> app_id = std::nullopt,
-           std::optional<std::string> recording_id = std::nullopt) {
+           std::optional<std::string> recording_id = std::nullopt,
+           std::string host = "rerun+http://127.0.0.1:9876/proxy")
+        : host(host) {
       if (recording_id.has_value()) {
         this->recording_id = recording_id.value();
       } else {
@@ -39,6 +41,7 @@ class VisualizerRerun : public Visualizer {
 
     std::string app_id;
     std::string recording_id;
+    std::string host;
     bool send_by_column{false};
   };
 
@@ -51,7 +54,7 @@ class VisualizerRerun : public Visualizer {
                  params.recording_id);
     rec_ = std::make_unique<rerun::RecordingStream>(
         rerun::RecordingStream(params.app_id, params.recording_id));
-    rec_->connect_grpc("rerun+http://127.0.0.1:9876/proxy").exit_on_failure();
+    rec_->connect_grpc(params.host).exit_on_failure();
 
     rec_->log_static(
         "map",
@@ -229,6 +232,11 @@ class VisualizerRerun : public Visualizer {
         rerun::Image::from_rgba32(rgba32,
                                   {static_cast<uint32_t>(image.cols),
                                    static_cast<uint32_t>(image.rows)}));
+
+    auto rr_pinhole_camera =
+        rerun::Pinhole().with_image_plane_distance(1).with_resolution(
+            static_cast<float>(image.cols), static_cast<float>(image.rows));
+    this->rec_->log_with_static(entity_path, is_static, rr_pinhole_camera);
   }
 
   void drawBayesTreeEdges(
