@@ -29,6 +29,8 @@ const Eigen::Vector4f ColorMap::kRed = Eigen::Vector4f(255, 0, 0, 255);
 const Eigen::Vector4f ColorMap::kBlue = Eigen::Vector4f(0, 0, 255, 255);
 const Eigen::Vector4f ColorMap::kGray = Eigen::Vector4f(128, 128, 128, 255);
 const Eigen::Vector4f ColorMap::kBlack = Eigen::Vector4f(0, 0, 0, 255);
+const Eigen::Vector4f ColorMap::kLightBlue =
+    Eigen::Vector4f(173, 216, 230, 255);
 
 class Visualizer;
 

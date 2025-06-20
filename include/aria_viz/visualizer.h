@@ -7,6 +7,7 @@
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
+#include <gtsam/symbolic/SymbolicFactorGraph.h>
 #include <spdlog/fmt/fmt.h>
 
 #include <Eigen/Eigen>
@@ -49,6 +50,7 @@ struct ColorMap {
   static const Eigen::Vector4f kBlue;
   static const Eigen::Vector4f kGray;
   static const Eigen::Vector4f kBlack;
+  static const Eigen::Vector4f kLightBlue;
 };
 
 struct AgentColorMap : public ColorMap {
@@ -229,18 +231,17 @@ class Visualizer {
     if (values.exists(key) == false) {
       return std::nullopt;
     }
-    auto dim = values.at(key).dim();
-    if (dim == 3) {
-      try {
-        auto point = values.at<Pose2>(key);
-        return Point3(point.x(), point.y(), 0);
-      } catch (gtsam::ValuesIncorrectType& e) {
-        auto point = values.at<Point3>(key);
-        return point;
-      }
-    } else if (dim == 6) {
-      auto point = values.at<Pose3>(key);
-      return Pose3(point).translation();
+    const Value& value = values.at(key);
+    if (typeid(value) == typeid(GenericValue<Point3>)) {
+      return values.at<Point3>(key);
+    } else if (typeid(value) == typeid(GenericValue<Pose3>)) {
+      return values.at<Pose3>(key).translation();
+    } else if (typeid(value) == typeid(GenericValue<Point2>)) {
+      const Point2& p2 = values.at<Point2>(key);
+      return Point3(p2.x(), p2.y(), 0.0);
+    } else if (typeid(value) == typeid(GenericValue<Pose2>)) {
+      const Pose2& p2 = values.at<Pose2>(key);
+      return Point3(p2.x(), p2.y(), 0.0);
     } else {
       return std::nullopt;
     }
@@ -391,8 +392,10 @@ class Visualizer {
       }
 
       auto keys = factor->keys();
-      CHECK(keys.size() <= 2,
-            "Not implemented for factors with more than 2 keys");
+      if (keys.size() > 2) {
+        // spdlog::warn("Factor has more than 2 keys, skip");
+        continue;
+      }
 
       auto key = keys[0];
       std::optional<Point3> p0, p1;
@@ -435,6 +438,87 @@ class Visualizer {
               float axis_length = 1.f,
               bool is_static = false) {
     drawTfImpl(entity_path, tf, axis_length, is_static);
+  }
+
+  void drawTrajectory(const std::string& entity_path,
+                      const std::vector<Pose3>& poses,
+                      const Eigen::Vector4f& rgba = ColorMap::kGreen,
+                      float line_width = 0.5f,
+                      bool is_static = false) {
+    Values values;
+    for (size_t i = 0; i < poses.size(); ++i) {
+      values.insert(i, poses[i]);
+    }
+
+    // use symbolic factor graph to draw the trajectory
+    gtsam::SymbolicFactorGraph::shared_ptr graph(new SymbolicFactorGraph());
+    for (size_t i = 0; i < poses.size() - 1; ++i) {
+      graph->add(gtsam::SymbolicFactor(i, i + 1));
+    }
+
+    if (is_static) {
+      spdlog::warn("Drawing trajectory as static is not supported yet");
+    }
+
+    drawFactors(entity_path, *graph, values, {rgba}, line_width, false, true);
+  }
+
+  void drawLandmarks(const std::string& entity_path,
+                     const std::vector<Point3>& landmarks,
+                     const std::vector<long>& ids,
+                     const std::vector<Eigen::Vector4f>& rgba,
+                     const std::vector<float>& radius,
+                     const std::vector<std::string>& labels = {},
+                     bool is_static = false) {
+    CHECK(ids.size() == landmarks.size() or ids.size() == 0,
+          fmt::format("ids.size() != landmarks.size(), either empty. {} != {}",
+                      ids.size(),
+                      landmarks.size()));
+    CHECK(rgba.size() == landmarks.size() or rgba.size() == 1,
+          fmt::format(
+              "rgba.size() != landmarks.size(), either single value. {} != {}",
+              rgba.size(),
+              landmarks.size()));
+
+    std::vector<Eigen::Vector4f> colors;
+    if (rgba.size() == 1) {
+      colors.resize(landmarks.size(), rgba[0]);
+    } else {
+      colors = rgba;
+    }
+
+    std::vector<double> radii;
+    if (radius.empty()) {
+      radii.resize(landmarks.size(), 0.1f);
+    } else if (radius.size() == 1) {
+      radii.resize(landmarks.size(), radius[0]);
+    } else {
+      LOG_FATAL(
+          "radius.size() != landmarks.size(), either single value. {} != {}",
+          radius.size(),
+          landmarks.size());
+    }
+
+    if (ids.empty()) {
+      // if ids are empty, draw points as a single entity
+      drawPoints(entity_path,
+                 landmarks,
+                 rgba.empty() ? ColorMap::kGray : rgba[0],
+                 radius.empty() ? 0.1f : radius[0],
+                 is_static);
+    } else {
+      // if ids are not empty, draw points in each entity path
+      for (size_t i = 0; i < landmarks.size(); ++i) {
+        std::string entity_path_with_id =
+            fmt::format("{}/{}", entity_path, ids[i]);
+        drawPoints(entity_path_with_id,
+                   {landmarks.at(i)},
+                   colors.at(i),
+                   {radii.at(i)},
+                   {},
+                   is_static);
+      }
+    }
   }
 
  protected:
