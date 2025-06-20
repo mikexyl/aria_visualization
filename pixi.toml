@@ -1,0 +1,28 @@
+[workspace]
+authors = ["Mike Xiangyu Liu <liu.xiangyu@ucy.ac.cy>"]
+channels = [
+  "https://prefix.dev/pixi-build-backends",
+  "https://prefix.dev/conda-forge",
+]
+name = "aria_viz"
+platforms = ["linux-64"]
+version = "0.1.0"
+preview = ["pixi-build"]
+
+[package]
+name = "aria_viz"
+version = "0.1.0"
+build = { backend = { name = "pixi-build-cmake", version = "0.1.*" } }
+
+[tasks]
+
+[dependencies]
+aria_common = { path = "../aria_common" }
+
+[package.build-dependencies]
+cmake = "*"
+cxx-compiler = "*"
+gtsam = "*"
+rerun-sdk = "*"
+eigen = "*"
+boost = "*"

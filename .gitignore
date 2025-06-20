@@ -35,3 +35,6 @@ build
 .cache
 compile_commands.json
 CMakeUserPresets.json
+# pixi environments
+.pixi
+*.egg-info

@@ -79,7 +79,7 @@ class VisualizerRerun : public Visualizer {
     // 3. Layout and render to memory (PNG format)
     gvLayout(gvc, g, "dot");
     char* data = nullptr;
-    unsigned int length = 0;
+    size_t length = 0;
     gvRenderData(gvc, g, "png", &data, &length);
 
     // 4. Convert rendered data to OpenCV Mat
