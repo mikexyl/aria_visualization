@@ -7,7 +7,7 @@
   },
   "configurePresets": [
     {
-      "name": "config-Release",
+      "name": "config",
       "generator": "Ninja Multi-Config",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {

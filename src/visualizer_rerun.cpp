@@ -72,7 +72,7 @@ void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
 
   rerun::Collection<rerun::components::Radius> radii;
   for (auto r : radius) {
-    radii.take_ownership(rerun::components::Radius::ui_points(r));
+    radii.take_ownership(rerun::components::Radius(r));
   }
 
   rec_->log_with_static(entity_path,
@@ -252,7 +252,8 @@ void VisualizerRerun::drawTfImpl(const std::string& entity_path,
                static_cast<float>(tf.rotation().toQuaternion().x()),
                static_cast<float>(tf.rotation().toQuaternion().y()),
                static_cast<float>(tf.rotation().toQuaternion().z())}))
-          .with_axis_length(axis_length);
+          .with_axis_length(axis_length)
+          .with_relation(rerun::TransformRelation::ParentFromChild);
 
   // Log the transform to the RecordingStream
   rec_->log_with_static(entity_path, is_static, transform);
