@@ -3,9 +3,13 @@
 #include <graphviz/cgraph.h>
 #include <graphviz/gvc.h>
 #include <gtsam/linear/GaussianBayesTree.h>
+#include <gtsam/nonlinear/Values.h>
 
 #include <opencv2/imgproc.hpp>
 #include <rerun.hpp>
+#include <rerun/collection.hpp>
+#include <rerun/components/line_strip2d.hpp>
+#include <rerun/components/position2d.hpp>
 
 #include "aria_viz/collection_adapters.hpp"
 #include "aria_viz/visualizer.h"
@@ -28,8 +32,20 @@ class VisualizerRerun : public Visualizer {
       if (recording_id.has_value()) {
         this->recording_id = recording_id.value();
       } else {
-        // generate a random recording id
-        this->recording_id = "";
+        // use the current time as recording id
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
+        std::tm tm_local = *std::localtime(&now_time_t);
+        std::ostringstream oss;
+        oss << std::put_time(&tm_local, "%Y%m%d%H%M%S");
+        // add two random digits to avoid collisions
+        // create a random device and generator
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        // create a uniform distribution between 0 and 99
+        std::uniform_int_distribution<> dis(0, 99);
+        oss << dis(gen);
+        this->recording_id = oss.str();
       }
 
       if (app_id.has_value()) {
@@ -107,8 +123,7 @@ class VisualizerRerun : public Visualizer {
                      const std::vector<std::pair<Point3, Point3>>& points_pairs,
                      const std::vector<Eigen::Vector4f>& rgba,
                      float radius,
-                     const std::vector<std::string>& labels,
-                     const std::vector<std::string>& text) override;
+                     const std::vector<std::string>& labels) override;
 
   void drawUncertaintyImpl2D(const std::string& entity_path,
                              const Point2& mean,
@@ -239,6 +254,36 @@ class VisualizerRerun : public Visualizer {
     this->rec_->log_with_static(entity_path, is_static, rr_pinhole_camera);
   }
 
+  void drawDepthImage(const std::string& entity_path,
+                      const cv::Mat& depth_image,
+                      bool is_static = false,
+                      std::array<float, 2> focal_length = {200.f, 200.f}) {
+    // skip if image is empty
+    if (depth_image.empty()) {
+      spdlog::warn("Skipping empty depth image for entity: {}", entity_path);
+      return;
+    }
+
+    auto rr_depth_image =
+        rerun::DepthImage(depth_image.data,
+                          {static_cast<uint32_t>(depth_image.cols),
+                           static_cast<uint32_t>(depth_image.rows)},
+                          rerun::datatypes::ChannelDatatype::F32)
+            .with_meter(1)
+            .with_colormap(rerun::components::Colormap::Viridis);
+
+    this->rec_->log_with_static(
+        entity_path + "/pinhole",
+        is_static,
+        rerun::Pinhole::from_focal_length_and_resolution(
+            focal_length,
+            {static_cast<float>(depth_image.cols),
+             static_cast<float>(depth_image.rows)}));
+
+    this->rec_->log_with_static(
+        entity_path + "/pinhole/depth", is_static, rr_depth_image);
+  }
+
   void drawBayesTreeEdges(
       const std::string& entity_path,
       std::vector<GaussianBayesTreeClique::shared_ptr> edges,
@@ -256,15 +301,36 @@ class VisualizerRerun : public Visualizer {
     drawBayesTreeEdges(entity_path, edges_pairs, rgba, line_width, is_static);
   }
 
+  void drawTrajectory2D(const std::string& entity_path,
+                        const std::vector<Pose2>& poses,
+                        const Eigen::Vector4f& rgba,
+                        float radius = 0.5f) {
+    if (poses.size() < 2) {
+      spdlog::warn("Skipping empty trajectory for entity: {}", entity_path);
+      return;
+    }
+    std::vector<rerun::Collection<rerun::Vec2D>> lines;
+    for (size_t i = 0; i < poses.size() - 1; i++) {
+      rerun::Vec2D p1(poses[i].translation().x(), poses[i].translation().y());
+      rerun::Vec2D p2(poses[i + 1].translation().x(),
+                      poses[i + 1].translation().y());
+      lines.push_back({p1, p2});
+    }
+    std::vector<Eigen::Vector4f> colors(poses.size(), rgba);
+    this->rec_->log(
+        entity_path,
+        rerun::LineStrips2D(lines)
+            .with_colors(fromEigen(colors))
+            .with_radii(rerun::components::Radius::ui_points(radius)));
+  }
+
  protected:
   void connectPositions3D(
       const std::string& entity_path,
       const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& positions,
       const std::vector<Eigen::Vector4f>& rgba,
       float radius = 0.01f,
-      const std::vector<std::string>& labels = {},
-      bool clear = false,
-      const std::vector<std::string>& text = {});
+      const std::vector<std::string>& labels = {});
 
   void drawTfImpl(const std::string& entity_path,
                   const Pose3& tf,

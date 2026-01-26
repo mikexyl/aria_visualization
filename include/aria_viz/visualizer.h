@@ -157,8 +157,7 @@ class Visualizer {
                  const std::vector<std::pair<Point3, Point3>>& points_pairs,
                  const std::vector<Eigen::Vector4f>& rgba,
                  float radius,
-                 const std::vector<std::string>& labels = {},
-                 const std::vector<std::string>& text = {}) {
+                 const std::vector<std::string>& labels = {}) {
     if (points_pairs.empty()) {
       return;
     }
@@ -172,7 +171,7 @@ class Visualizer {
                         points_pairs.size()));
     }
 
-    drawLinesImpl(entity_path, points_pairs, colors, radius, labels, text);
+    drawLinesImpl(entity_path, points_pairs, colors, radius, labels);
   }
 
   virtual void drawScalar(const std::string& entity_path, double value) {}
@@ -182,8 +181,7 @@ class Visualizer {
       const std::vector<std::pair<Point3, Point3>>& points_pairs,
       const std::vector<Eigen::Vector4f>& rgba,
       float radius,
-      const std::vector<std::string>& labels,
-      const std::vector<std::string>& text) {}
+      const std::vector<std::string>& labels) {}
 
   void drawPoints(const std::string& entity_path,
                   const std::vector<Point3>& points,
@@ -265,16 +263,19 @@ class Visualizer {
                      bool is_static = false,
                      float height = 10.) {
     std::vector<std::pair<Point3, Point3>> points;
+    std::vector<std::string> labels(points.size(), "");
     for (auto key : keys) {
       auto point = getPoint3(key, values);
       if (point) {
         Point3 p_up{point->x(), point->y(), point->z() + radius * height};
         points.emplace_back(*point, p_up);
+        labels.push_back(fmt::format("{}", MultiRobotKeyFormatter(key)));
       }
     }
 
     std::vector<Eigen::Vector4f> rgbs(points.size(), rgba);
-    drawLines(entity_path, points, rgbs, radius);
+
+    drawLines(entity_path, points, rgbs, radius, labels);
   }
 
   template <typename ContainerT>
@@ -410,10 +411,11 @@ class Visualizer {
       if (p0.has_value() && p1.has_value()) {
         points.emplace_back(*p0, *p1);
         if (keys.size() == 2) {
-          labels.push_back(fmt::format(
-              "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+          labels.push_back(fmt::format("{}-{}",
+                                       MultiRobotKeyFormatter(key),
+                                       MultiRobotKeyFormatter(keys[1])));
         } else {
-          labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+          labels.push_back(fmt::format("{}", MultiRobotKeyFormatter(key)));
         }
         colors.push_back(rgba.at(i));
       } else {
@@ -421,8 +423,8 @@ class Visualizer {
           continue;
         }
         LOG_FATAL("Factor has no value for key {} or {}",
-                  DefaultKeyFormatter(keys[0]),
-                  DefaultKeyFormatter(keys[1]));
+                  MultiRobotKeyFormatter(keys[0]),
+                  MultiRobotKeyFormatter(keys[1]));
       }
     }
 

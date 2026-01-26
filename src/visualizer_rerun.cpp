@@ -19,11 +19,7 @@ void VisualizerRerun::connectPositions3D(
     const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& positions,
     const std::vector<Eigen::Vector4f>& rgba,
     float radius,
-    const std::vector<std::string>& labels,
-    bool clear,
-    const std::vector<std::string>& text) {
-  if (clear) rec_->log(entity_path, rerun::Clear(false));
-
+    const std::vector<std::string>& labels) {
   std::vector<rerun::Collection<rerun::Vec3D>> lines;
 
   for (const auto& [pos0, pos1] : positions) {
@@ -44,14 +40,13 @@ void VisualizerRerun::drawLinesImpl(
     const std::vector<std::pair<Point3, Point3>>& points_pairs,
     const std::vector<Eigen::Vector4f>& rgba,
     float radius,
-    const std::vector<std::string>& labels,
-    const std::vector<std::string>& text) {
+    const std::vector<std::string>& labels) {
   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> positions;
   for (auto const& [point0, point1] : points_pairs) {
     positions.push_back({point0.cast<float>(), point1.cast<float>()});
   }
 
-  connectPositions3D(entity_path, positions, rgba, radius, labels, false, text);
+  connectPositions3D(entity_path, positions, rgba, radius, labels);
 }
 
 void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
@@ -96,7 +91,8 @@ void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
                 .with_colors({fromEigen(rgba)})
                 .with_rotation_axis_angles({rerun::RotationAxisAngle(
                     {0, 0, 1}, rerun::Angle::radians(angle))})
-                .with_line_radii(line_width));
+                // .with_line_radii(line_width)
+                .with_fill_mode(rerun::components::FillMode::Solid));
 }
 
 void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
@@ -105,21 +101,27 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
                                             const Eigen::Vector4f& rgba,
                                             float line_width,
                                             bool is_static) {
+  // convert ellipse[3:6] to quaternion
+  auto rpy = Eigen::Vector3d(ellipse[3], ellipse[4], ellipse[5]);
+  Eigen::Quaterniond q;
+  q = Eigen::AngleAxisd(rpy[2], Eigen::Vector3d::UnitZ()) *
+      Eigen::AngleAxisd(rpy[1], Eigen::Vector3d::UnitY()) *
+      Eigen::AngleAxisd(rpy[0], Eigen::Vector3d::UnitX());
+  rerun::components::RotationQuat quat({static_cast<float>(q.x()),
+                                        static_cast<float>(q.y()),
+                                        static_cast<float>(q.z()),
+                                        static_cast<float>(q.w())});
+
   rec_->log_with_static(
       entity_path,
       is_static,
-      rerun::Ellipsoids3D::from_centers_and_radii(
+      rerun::Ellipsoids3D::from_centers_and_half_sizes(
           {{mean.x(), mean.y(), mean.z()}},
-          {{ellipse[0], ellipse[1], ellipse[2]}})
+          {{ellipse[0] / 2, ellipse[1] / 2, ellipse[2] / 2}})
+          .with_quaternions({quat})
           .with_colors({fromEigen(rgba)})
-          .with_rotation_axis_angles(
-              {rerun::RotationAxisAngle({1, 0, 0},
-                                        rerun::Angle::radians(ellipse[3])),
-               rerun::RotationAxisAngle({0, 1, 0},
-                                        rerun::Angle::radians(ellipse[4])),
-               rerun::RotationAxisAngle({0, 0, 1},
-                                        rerun::Angle::radians(ellipse[5]))})
-          .with_line_radii(rerun::components::Radius::ui_points(line_width)));
+          .with_line_radii(rerun::components::Radius::ui_points(line_width))
+          .with_fill_mode(rerun::components::FillMode::Solid));
 }
 
 void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
@@ -251,11 +253,13 @@ void VisualizerRerun::drawTfImpl(const std::string& entity_path,
               {static_cast<float>(tf.rotation().toQuaternion().w()),
                static_cast<float>(tf.rotation().toQuaternion().x()),
                static_cast<float>(tf.rotation().toQuaternion().y()),
-               static_cast<float>(tf.rotation().toQuaternion().z())}))
-          .with_axis_length(axis_length);
+               static_cast<float>(tf.rotation().toQuaternion().z())}));
+
+  // TODO: set axis length, currently removed in rerun 0.28
 
   // Log the transform to the RecordingStream
-  rec_->log_with_static(entity_path, is_static, transform);
+  rec_->log_with_static(
+      entity_path, is_static, transform, rerun::TransformAxes3D(axis_length));
 }
 
 }  // namespace aria::viz
