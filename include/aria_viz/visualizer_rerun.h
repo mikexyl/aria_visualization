@@ -151,7 +151,8 @@ class VisualizerRerun : public Visualizer {
    *
    * @param level
    */
-  void addSpdlogToRerun(spdlog::level::level_enum level);
+  void addSpdlogToRerun(spdlog::level::level_enum level,
+                        std::string prefix = "");
 
   rerun::RecordingStream* rec() { return rec_.get(); }
 
