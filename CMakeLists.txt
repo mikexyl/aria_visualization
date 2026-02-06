@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22) # for cmake presets support
+cmake_minimum_required(VERSION 3.16) # for cmake presets support
 project(aria_viz VERSION 0.0.1)
 
 set(CMAKE_CXX_STANDARD 17)
