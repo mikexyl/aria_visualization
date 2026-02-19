@@ -18,6 +18,58 @@ using namespace gtsam;
 
 namespace aria::viz {
 
+/**
+ * Returns a rainbow color (RGBA) based on an integer step.
+ * @param step: The current index (0 = Red, 1 = Orange, etc.)
+ * @param max_steps: How many steps until the cycle repeats (default 7)
+ * @param alpha: The transparency value (0.0 to 1.0)
+ * @return Eigen::Vector4f: [R, G, B, A] in range 0.0 - 1.0
+ */
+inline Eigen::Vector4f getRainbow(int step,
+                                  int max_steps = 7,
+                                  float alpha = 1.f) {
+  // 1. Calculate Hue (0 to 360 degrees)
+  // Using fmod to handle negative integers or large wraps gracefully
+  float hue =
+      std::fmod(static_cast<float>(step), static_cast<float>(max_steps)) /
+      max_steps * 360.0f;
+  if (hue < 0) hue += 360.0f;
+
+  // 2. Standard HSV to RGB conversion variables
+  float c = 1.0f;  // Chroma (Value * Saturation)
+  float x = c * (1.0f - std::abs(std::fmod(hue / 60.0f, 2.0f) - 1.0f));
+
+  float r = 0, g = 0, b = 0;
+
+  if (hue < 60) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (hue < 120) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (hue < 180) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (hue < 240) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (hue < 300) {
+    r = x;
+    g = 0;
+    b = c;
+  } else {
+    r = c;
+    g = 0;
+    b = x;
+  }
+
+  return Eigen::Vector4f(r, g, b, alpha) * 255;
+}
+
 struct ColorMap {
   static Eigen::Vector3f random() {
     // generate a random vector from 0 to 256
