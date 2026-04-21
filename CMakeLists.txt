@@ -59,7 +59,9 @@ target_link_libraries(${PROJECT_NAME}
   ${DEPENDENCIES}
 )
 
-add_subdirectory(tests)
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 # Export rerun_sdk
 # export(EXPORT rerun_sdkTargets FILE _deps/rerun_sdk-build/rerun_sdkTargets.cmake)
