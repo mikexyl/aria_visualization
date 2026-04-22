@@ -12,11 +12,17 @@
 
 #include <Eigen/Eigen>
 #include <opencv2/highgui.hpp>
+#include <array>
+#include <cstdint>
+#include <filesystem>
 #include <optional>
 
 using namespace gtsam;
 
 namespace aria::viz {
+
+using MeshTriangle = std::array<uint32_t, 3>;
+using MeshTexcoord = std::array<float, 2>;
 
 struct ColorMap {
   static Eigen::Vector3f random() {
@@ -209,6 +215,74 @@ class Visualizer {
                               const std::vector<float>& radius,
                               const std::vector<std::string>& labels,
                               bool is_static = false) {}
+
+  void drawMesh(const std::string& entity_path,
+                const std::vector<Point3>& vertex_positions,
+                const std::vector<MeshTriangle>& triangle_indices,
+                const std::vector<Eigen::Vector4f>& vertex_colors = {},
+                const std::vector<Point3>& vertex_normals = {},
+                bool is_static = false) {
+    drawMeshImpl(entity_path,
+                 vertex_positions,
+                 triangle_indices,
+                 vertex_colors,
+                 vertex_normals,
+                 is_static);
+  }
+
+  virtual void drawMeshImpl(const std::string& entity_path,
+                            const std::vector<Point3>& vertex_positions,
+                            const std::vector<MeshTriangle>& triangle_indices,
+                            const std::vector<Eigen::Vector4f>& vertex_colors,
+                            const std::vector<Point3>& vertex_normals,
+                            bool is_static = false) {}
+
+  void drawTexturedMesh(const std::string& entity_path,
+                        const std::vector<Point3>& vertex_positions,
+                        const std::vector<MeshTriangle>& triangle_indices,
+                        const std::vector<MeshTexcoord>& vertex_texcoords,
+                        const cv::Mat& albedo_texture,
+                        const std::vector<Eigen::Vector4f>& vertex_colors = {},
+                        const std::vector<Point3>& vertex_normals = {},
+                        bool is_static = false) {
+    drawTexturedMeshImpl(entity_path,
+                         vertex_positions,
+                         triangle_indices,
+                         vertex_texcoords,
+                         albedo_texture,
+                         vertex_colors,
+                         vertex_normals,
+                         is_static);
+  }
+
+  virtual void drawTexturedMeshImpl(
+      const std::string& entity_path,
+      const std::vector<Point3>& vertex_positions,
+      const std::vector<MeshTriangle>& triangle_indices,
+      const std::vector<MeshTexcoord>& vertex_texcoords,
+      const cv::Mat& albedo_texture,
+      const std::vector<Eigen::Vector4f>& vertex_colors,
+      const std::vector<Point3>& vertex_normals,
+      bool is_static = false) {
+    (void)vertex_texcoords;
+    (void)albedo_texture;
+    drawMeshImpl(entity_path,
+                 vertex_positions,
+                 triangle_indices,
+                 vertex_colors,
+                 vertex_normals,
+                 is_static);
+  }
+
+  void drawMeshFile(const std::string& entity_path,
+                    const std::filesystem::path& mesh_path,
+                    bool is_static = false) {
+    drawMeshFileImpl(entity_path, mesh_path, is_static);
+  }
+
+  virtual void drawMeshFileImpl(const std::string& entity_path,
+                                const std::filesystem::path& mesh_path,
+                                bool is_static = false) {}
 
   void drawPoints(const std::string& entity_path,
                   const std::vector<Point3>& points,

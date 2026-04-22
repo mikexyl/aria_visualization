@@ -10,6 +10,108 @@ using namespace gtsam;
 
 namespace aria::viz {
 
+namespace {
+
+std::vector<rerun::components::Position3D> toRerunPositions(
+    const std::vector<Point3>& points) {
+  std::vector<rerun::components::Position3D> positions;
+  positions.reserve(points.size());
+  for (const auto& point : points) {
+    positions.emplace_back(point.x(), point.y(), point.z());
+  }
+  return positions;
+}
+
+std::vector<rerun::components::Vector3D> toRerunVectors(
+    const std::vector<Point3>& points) {
+  std::vector<rerun::components::Vector3D> vectors;
+  vectors.reserve(points.size());
+  for (const auto& point : points) {
+    vectors.emplace_back(point.x(), point.y(), point.z());
+  }
+  return vectors;
+}
+
+std::vector<rerun::components::TriangleIndices> toRerunTriangles(
+    const std::vector<MeshTriangle>& triangle_indices) {
+  std::vector<rerun::components::TriangleIndices> triangles;
+  triangles.reserve(triangle_indices.size());
+  for (const auto& triangle : triangle_indices) {
+    triangles.emplace_back(triangle);
+  }
+  return triangles;
+}
+
+std::vector<rerun::components::Color> toRerunColors(
+    const std::vector<Eigen::Vector4f>& rgba) {
+  std::vector<rerun::components::Color> colors;
+  colors.reserve(rgba.size());
+  for (const auto& color : rgba) {
+    colors.push_back(fromEigen(color));
+  }
+  return colors;
+}
+
+std::vector<rerun::components::Texcoord2D> toRerunTexcoords(
+    const std::vector<MeshTexcoord>& texcoords) {
+  std::vector<rerun::components::Texcoord2D> rerun_texcoords;
+  rerun_texcoords.reserve(texcoords.size());
+  for (const auto& texcoord : texcoords) {
+    rerun_texcoords.emplace_back(texcoord[0], texcoord[1]);
+  }
+  return rerun_texcoords;
+}
+
+struct TextureImageData {
+  rerun::components::ImageBuffer buffer;
+  rerun::components::ImageFormat format;
+};
+
+TextureImageData toRerunTextureImage(const cv::Mat& texture_image) {
+  if (texture_image.empty()) {
+    throw std::runtime_error("Texture image is empty");
+  }
+
+  cv::Mat converted_texture;
+  rerun::datatypes::ColorModel color_model;
+  switch (texture_image.type()) {
+    case CV_8UC1:
+      cv::cvtColor(texture_image, converted_texture, cv::COLOR_GRAY2RGB);
+      color_model = rerun::datatypes::ColorModel::RGB;
+      break;
+    case CV_8UC3:
+      cv::cvtColor(texture_image, converted_texture, cv::COLOR_BGR2RGB);
+      color_model = rerun::datatypes::ColorModel::RGB;
+      break;
+    case CV_8UC4:
+      cv::cvtColor(texture_image, converted_texture, cv::COLOR_BGRA2RGBA);
+      color_model = rerun::datatypes::ColorModel::RGBA;
+      break;
+    default:
+      throw std::runtime_error("Unsupported texture image type");
+  }
+
+  if (!converted_texture.isContinuous()) {
+    converted_texture = converted_texture.clone();
+  }
+
+  const auto num_bytes = converted_texture.total() * converted_texture.elemSize();
+  std::vector<uint8_t> texture_bytes(converted_texture.data,
+                                     converted_texture.data + num_bytes);
+
+  TextureImageData texture_data;
+  texture_data.buffer =
+      rerun::components::ImageBuffer(rerun::take_ownership(std::move(texture_bytes)));
+  texture_data.format = rerun::components::ImageFormat(
+      rerun::WidthHeight(static_cast<uint32_t>(converted_texture.cols),
+                         static_cast<uint32_t>(converted_texture.rows)),
+      color_model,
+      rerun::datatypes::ChannelDatatype::U8);
+  return texture_data;
+}
+
+}  // namespace
+
 void VisualizerRerun::setTimeNSec(size_t timestamp) {
   rec_->set_time_timestamp_nanos_since_epoch("time", timestamp);
 }
@@ -81,6 +183,90 @@ void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
                             .with_colors(colors)
                             .with_radii(radii)
                             .with_labels(labels));
+}
+
+void VisualizerRerun::drawMeshImpl(
+    const std::string& entity_path,
+    const std::vector<Point3>& vertex_positions,
+    const std::vector<MeshTriangle>& triangle_indices,
+    const std::vector<Eigen::Vector4f>& vertex_colors,
+    const std::vector<Point3>& vertex_normals,
+    bool is_static) {
+  if (vertex_positions.empty()) {
+    spdlog::warn("Skipping empty mesh for entity: {}", entity_path);
+    return;
+  }
+
+  auto mesh = rerun::Mesh3D(toRerunPositions(vertex_positions));
+  if (!triangle_indices.empty()) {
+    mesh = std::move(mesh).with_triangle_indices(
+        toRerunTriangles(triangle_indices));
+  }
+  if (!vertex_colors.empty()) {
+    mesh = std::move(mesh).with_vertex_colors(toRerunColors(vertex_colors));
+  }
+  if (!vertex_normals.empty()) {
+    mesh =
+        std::move(mesh).with_vertex_normals(toRerunVectors(vertex_normals));
+  }
+
+  rec_->log_with_static(entity_path, is_static, std::move(mesh));
+}
+
+void VisualizerRerun::drawTexturedMeshImpl(
+    const std::string& entity_path,
+    const std::vector<Point3>& vertex_positions,
+    const std::vector<MeshTriangle>& triangle_indices,
+    const std::vector<MeshTexcoord>& vertex_texcoords,
+    const cv::Mat& albedo_texture,
+    const std::vector<Eigen::Vector4f>& vertex_colors,
+    const std::vector<Point3>& vertex_normals,
+    bool is_static) {
+  if (vertex_positions.empty()) {
+    spdlog::warn("Skipping empty textured mesh for entity: {}", entity_path);
+    return;
+  }
+  if (vertex_texcoords.empty()) {
+    throw std::runtime_error("Textured mesh requires per-vertex UVs");
+  }
+  if (vertex_positions.size() != vertex_texcoords.size()) {
+    throw std::runtime_error(
+        "Textured mesh requires one UV coordinate per vertex");
+  }
+
+  auto texture_image = toRerunTextureImage(albedo_texture);
+
+  auto mesh = rerun::Mesh3D(toRerunPositions(vertex_positions))
+                  .with_vertex_texcoords(toRerunTexcoords(vertex_texcoords))
+                  .with_albedo_texture_buffer(texture_image.buffer)
+                  .with_albedo_texture_format(texture_image.format);
+
+  if (!triangle_indices.empty()) {
+    mesh = std::move(mesh).with_triangle_indices(
+        toRerunTriangles(triangle_indices));
+  }
+  if (!vertex_colors.empty()) {
+    mesh = std::move(mesh).with_vertex_colors(toRerunColors(vertex_colors));
+  }
+  if (!vertex_normals.empty()) {
+    mesh =
+        std::move(mesh).with_vertex_normals(toRerunVectors(vertex_normals));
+  }
+
+  rec_->log_with_static(entity_path, is_static, std::move(mesh));
+}
+
+void VisualizerRerun::drawMeshFileImpl(const std::string& entity_path,
+                                       const std::filesystem::path& mesh_path,
+                                       bool is_static) {
+  if (!std::filesystem::exists(mesh_path)) {
+    throw std::runtime_error("Mesh file does not exist: " + mesh_path.string());
+  }
+
+  rec_->log_with_static(
+      entity_path,
+      is_static,
+      rerun::Asset3D::from_file_path(mesh_path).value_or_throw());
 }
 
 void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,

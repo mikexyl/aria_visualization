@@ -131,6 +131,27 @@ class VisualizerRerun : public Visualizer {
                       const std::vector<std::string>& labels,
                       bool is_static = false) override;
 
+  void drawMeshImpl(const std::string& entity_path,
+                    const std::vector<Point3>& vertex_positions,
+                    const std::vector<MeshTriangle>& triangle_indices,
+                    const std::vector<Eigen::Vector4f>& vertex_colors,
+                    const std::vector<Point3>& vertex_normals,
+                    bool is_static = false) override;
+
+  void drawTexturedMeshImpl(
+      const std::string& entity_path,
+      const std::vector<Point3>& vertex_positions,
+      const std::vector<MeshTriangle>& triangle_indices,
+      const std::vector<MeshTexcoord>& vertex_texcoords,
+      const cv::Mat& albedo_texture,
+      const std::vector<Eigen::Vector4f>& vertex_colors,
+      const std::vector<Point3>& vertex_normals,
+      bool is_static = false) override;
+
+  void drawMeshFileImpl(const std::string& entity_path,
+                        const std::filesystem::path& mesh_path,
+                        bool is_static = false) override;
+
   /**
    * @brief add spdlog messages to rerun at the given level
    *
