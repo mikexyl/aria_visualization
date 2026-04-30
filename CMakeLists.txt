@@ -9,6 +9,7 @@ add_compile_options(-Wno-unused-parameter -Wno-unused-function)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Download the rerun_sdk
+find_package(Eigen3 REQUIRED)
 find_package(aria_common REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(OpenCV REQUIRED)

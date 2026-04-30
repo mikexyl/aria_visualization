@@ -12,10 +12,15 @@
 
 #include <Eigen/Eigen>
 #include <opencv2/highgui.hpp>
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace gtsam;
 
