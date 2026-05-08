@@ -471,6 +471,9 @@ class Visualizer {
       }
 
       auto keys = factor->keys();
+      if (keys.empty()) {
+        continue;
+      }
       if (keys.size() > 2) {
         // spdlog::warn("Factor has more than 2 keys, skip");
         continue;
@@ -494,14 +497,22 @@ class Visualizer {
         } else {
           labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
         }
-        colors.push_back(rgba.at(i));
+        if (rgba.empty()) {
+          colors.push_back(ColorMap::kGreen);
+        } else if (rgba.size() == 1u) {
+          colors.push_back(rgba.front());
+        } else {
+          colors.push_back(rgba.at(std::min(i, rgba.size() - 1u)));
+        }
       } else {
         if (ignore_missing_values) {
           continue;
         }
+        const std::string second_key =
+            keys.size() > 1u ? DefaultKeyFormatter(keys[1]) : "<none>";
         LOG_FATAL("Factor has no value for key {} or {}",
                   DefaultKeyFormatter(keys[0]),
-                  DefaultKeyFormatter(keys[1]));
+                  second_key);
       }
     }
 
@@ -539,7 +550,7 @@ class Visualizer {
       spdlog::warn("Drawing trajectory as static is not supported yet");
     }
 
-    drawFactors(entity_path, *graph, values, {rgba}, line_width, false, true);
+    drawFactors(entity_path, *graph, values, rgba, line_width, false, true);
   }
 
   void drawLandmarks(const std::string& entity_path,

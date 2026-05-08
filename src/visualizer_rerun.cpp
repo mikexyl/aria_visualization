@@ -6,6 +6,8 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include <cmath>
+
 using namespace gtsam;
 
 namespace aria::viz {
@@ -60,6 +62,27 @@ std::vector<rerun::components::Texcoord2D> toRerunTexcoords(
     rerun_texcoords.emplace_back(texcoord[0], texcoord[1]);
   }
   return rerun_texcoords;
+}
+
+bool isFinite(const Point3& point) {
+  return std::isfinite(point.x()) && std::isfinite(point.y()) &&
+         std::isfinite(point.z());
+}
+
+bool isFinite(const Eigen::Vector4f& vector) {
+  return vector.allFinite();
+}
+
+bool isValidEllipse(const std::vector<double>& ellipse, size_t expected_size) {
+  if (ellipse.size() < expected_size) {
+    return false;
+  }
+  for (size_t i = 0u; i < expected_size; ++i) {
+    if (!std::isfinite(ellipse[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 struct TextureImageData {
@@ -275,7 +298,12 @@ void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
                                             const Eigen::Vector4f& rgba,
                                             float line_width,
                                             bool is_static) {
-  double width = ellipse[0], height = ellipse[1], angle = ellipse[5];
+  if (!isValidEllipse(ellipse, 3u) || !isFinite(rgba)) {
+    spdlog::warn("Skipping invalid 2D uncertainty for entity: {}", entity_path);
+    return;
+  }
+
+  double width = ellipse[0], height = ellipse[1], angle = ellipse[2];
   rec_->log(entity_path,
             rerun::Ellipsoids3D::from_centers_and_radii(
                 {{mean.x(), mean.y(), 0}}, {{width, height, 0}})
@@ -291,6 +319,11 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
                                             const Eigen::Vector4f& rgba,
                                             float line_width,
                                             bool is_static) {
+  if (!isFinite(mean) || !isValidEllipse(ellipse, 6u) || !isFinite(rgba)) {
+    spdlog::warn("Skipping invalid 3D uncertainty for entity: {}", entity_path);
+    return;
+  }
+
   rec_->log_with_static(
       entity_path,
       is_static,
@@ -427,6 +460,21 @@ void VisualizerRerun::drawTfImpl(const std::string& entity_path,
                                  const Pose3& tf,
                                  float axis_length,
                                  bool is_static) {
+  const Point3 translation(tf.x(), tf.y(), tf.z());
+  const auto quaternion = tf.rotation().toQuaternion();
+  const double quaternion_norm = quaternion.norm();
+  if (!isFinite(translation) || !std::isfinite(quaternion.w()) ||
+      !std::isfinite(quaternion.x()) || !std::isfinite(quaternion.y()) ||
+      !std::isfinite(quaternion.z()) || quaternion_norm <= 1e-12) {
+    spdlog::warn("Skipping invalid transform for entity: {}", entity_path);
+    return;
+  }
+
+  const float q_w = static_cast<float>(quaternion.w() / quaternion_norm);
+  const float q_x = static_cast<float>(quaternion.x() / quaternion_norm);
+  const float q_y = static_cast<float>(quaternion.y() / quaternion_norm);
+  const float q_z = static_cast<float>(quaternion.z() / quaternion_norm);
+
   // Convert Pose3 to rerun::Transform3D
   auto transform =
       rerun::Transform3D()
@@ -434,10 +482,7 @@ void VisualizerRerun::drawTfImpl(const std::string& entity_path,
                              static_cast<float>(tf.y()),
                              static_cast<float>(tf.z())})
           .with_quaternion(rerun::datatypes::Quaternion::from_wxyz(
-              {static_cast<float>(tf.rotation().toQuaternion().w()),
-               static_cast<float>(tf.rotation().toQuaternion().x()),
-               static_cast<float>(tf.rotation().toQuaternion().y()),
-               static_cast<float>(tf.rotation().toQuaternion().z())}))
+              {q_w, q_x, q_y, q_z}))
           .with_relation(rerun::TransformRelation::ParentFromChild);
 
   // Rerun >=0.31 visualizes transform axes via a separate archetype.

@@ -75,7 +75,8 @@ std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix2d& cov) {
   }
 
   // Eigenvalues are the lengths of the ellipse's axes
-  Eigen::Vector2d eigenvalues = eigensolver.eigenvalues();
+  Eigen::Vector2d eigenvalues =
+      eigensolver.eigenvalues().array().max(0.0).matrix();
   double width = std::sqrt(eigenvalues(0)) * 4;
   double height = std::sqrt(eigenvalues(1)) * 4;
 
@@ -95,7 +96,8 @@ std::vector<double> Visualizer::getEllipseFromCov(const Eigen::Matrix3d& cov) {
   }
 
   // Eigenvalues are the lengths of the ellipse's axes
-  Eigen::Vector3d eigenvalues = eigensolver.eigenvalues();
+  Eigen::Vector3d eigenvalues =
+      eigensolver.eigenvalues().array().max(0.0).matrix();
   double x = std::sqrt(eigenvalues(0)) * 2;
   double y = std::sqrt(eigenvalues(1)) * 2;
   double z = std::sqrt(eigenvalues(2)) * 2;
