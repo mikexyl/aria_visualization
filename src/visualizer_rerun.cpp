@@ -308,14 +308,15 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
           .with_line_radii(rerun::components::Radius::ui_points(line_width)));
 }
 
-void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
+void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level,
+                                       std::string prefix) {
   // Ensure rec_ is valid
   if (!rec_) {
     throw std::runtime_error("RecordingStream pointer is null");
   }
 
   // Create a lambda function that captures `rec_` and adds messages to it
-  auto rerun_logger = [this](const spdlog::details::log_msg& msg) {
+  auto rerun_logger = [this, prefix](const spdlog::details::log_msg& msg) {
     // Convert spdlog message to string, assuming msg.payload contains the log
     // message
     std::string message(msg.payload.begin(), msg.payload.end());
@@ -325,7 +326,8 @@ void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level) {
     rerun::TextLogLevel level(spdlog::level::to_short_c_str(spdlog_level));
 
     // Forward the message to the RecordingStream
-    rec_->log("spdlog", rerun::TextLog(message).with_level(level));
+    rec_->log(prefix.empty() ? "spdlog" : prefix,
+              rerun::TextLog(message).with_level(level));
   };
 
   // Create a spdlog sink with the lambda callback
