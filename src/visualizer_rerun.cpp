@@ -6,6 +6,8 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include <chrono>
+
 using namespace gtsam;
 
 namespace aria::viz {
@@ -113,7 +115,16 @@ TextureImageData toRerunTextureImage(const cv::Mat& texture_image) {
 }  // namespace
 
 void VisualizerRerun::setTimeNSec(size_t timestamp) {
-  rec_->set_time_timestamp_nanos_since_epoch("time", timestamp);
+  (void)timestamp;
+  setSystemTime();
+}
+
+void VisualizerRerun::setSystemTime() {
+  const auto timestamp_ns =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count();
+  rec_->set_time_timestamp_nanos_since_epoch("time", timestamp_ns);
 }
 
 void VisualizerRerun::connectPositions3D(
@@ -124,7 +135,7 @@ void VisualizerRerun::connectPositions3D(
     const std::vector<std::string>& labels,
     bool clear,
     const std::vector<std::string>& text) {
-  if (clear) rec_->log(entity_path, rerun::Clear(false));
+  if (clear) rec()->log(entity_path, rerun::Clear(false));
 
   std::vector<rerun::Collection<rerun::Vec3D>> lines;
 
@@ -134,7 +145,7 @@ void VisualizerRerun::connectPositions3D(
     lines.push_back({p0, p1});
   }
 
-  rec_->log(entity_path,
+  rec()->log(entity_path,
             rerun::LineStrips3D(lines)
                 .with_colors(fromEigen(rgba))
                 .with_radii({rerun::components::Radius::ui_points(radius)})
@@ -177,7 +188,7 @@ void VisualizerRerun::drawPointsImpl(const std::string& entity_path,
     radii.take_ownership(rerun::components::Radius(r));
   }
 
-  rec_->log_with_static(entity_path,
+  rec()->log_with_static(entity_path,
                         is_static,
                         rerun::Points3D(points_eigen)
                             .with_colors(colors)
@@ -210,7 +221,7 @@ void VisualizerRerun::drawMeshImpl(
         std::move(mesh).with_vertex_normals(toRerunVectors(vertex_normals));
   }
 
-  rec_->log_with_static(entity_path, is_static, std::move(mesh));
+  rec()->log_with_static(entity_path, is_static, std::move(mesh));
 }
 
 void VisualizerRerun::drawTexturedMeshImpl(
@@ -253,7 +264,7 @@ void VisualizerRerun::drawTexturedMeshImpl(
         std::move(mesh).with_vertex_normals(toRerunVectors(vertex_normals));
   }
 
-  rec_->log_with_static(entity_path, is_static, std::move(mesh));
+  rec()->log_with_static(entity_path, is_static, std::move(mesh));
 }
 
 void VisualizerRerun::drawMeshFileImpl(const std::string& entity_path,
@@ -263,7 +274,7 @@ void VisualizerRerun::drawMeshFileImpl(const std::string& entity_path,
     throw std::runtime_error("Mesh file does not exist: " + mesh_path.string());
   }
 
-  rec_->log_with_static(
+  rec()->log_with_static(
       entity_path,
       is_static,
       rerun::Asset3D::from_file_path(mesh_path).value_or_throw());
@@ -276,7 +287,7 @@ void VisualizerRerun::drawUncertaintyImpl2D(const std::string& entity_path,
                                             float line_width,
                                             bool is_static) {
   double width = ellipse[0], height = ellipse[1], angle = ellipse[5];
-  rec_->log(entity_path,
+  rec()->log(entity_path,
             rerun::Ellipsoids3D::from_centers_and_radii(
                 {{mean.x(), mean.y(), 0}}, {{width, height, 0}})
                 .with_colors({fromEigen(rgba)})
@@ -291,7 +302,7 @@ void VisualizerRerun::drawUncertaintyImpl3D(const std::string& entity_path,
                                             const Eigen::Vector4f& rgba,
                                             float line_width,
                                             bool is_static) {
-  rec_->log_with_static(
+  rec()->log_with_static(
       entity_path,
       is_static,
       rerun::Ellipsoids3D::from_centers_and_radii(
@@ -326,8 +337,8 @@ void VisualizerRerun::addSpdlogToRerun(spdlog::level::level_enum level,
     rerun::TextLogLevel level(spdlog::level::to_short_c_str(spdlog_level));
 
     // Forward the message to the RecordingStream
-    rec_->log(prefix.empty() ? "spdlog" : prefix,
-              rerun::TextLog(message).with_level(level));
+    rec()->log(prefix.empty() ? "spdlog" : prefix,
+               rerun::TextLog(message).with_level(level));
   };
 
   // Create a spdlog sink with the lambda callback
@@ -365,18 +376,18 @@ void VisualizerRerun::plotBenchmarkStats() {
       label_with_index += "_" + std::to_string(stat.index.value());
     }
 
-    rec_->log_static(
+    rec()->log_static(
         "timing/mean/" + label_with_index,
         rerun::SeriesLines().with_colors({{color(0), color(1), color(2)}}));
-    rec_->log_static(
+    rec()->log_static(
         "timing/total/" + label_with_index,
         rerun::SeriesLines().with_colors({{color(0), color(1), color(2)}}));
 
     // Log the stats
-    rec_->log("timing/mean/" + label_with_index,
-              rerun::Scalars(std::vector<double>{stat.mean}));
-    rec_->log("timing/total/" + label_with_index,
-              rerun::Scalars(std::vector<double>{stat.mean * stat.count}));
+    rec()->log("timing/mean/" + label_with_index,
+               rerun::Scalars(std::vector<double>{stat.mean}));
+    rec()->log("timing/total/" + label_with_index,
+               rerun::Scalars(std::vector<double>{stat.mean * stat.count}));
   }
 }
 
@@ -410,7 +421,7 @@ void VisualizerRerun::drawBayesTreeEdges(
     LOG_FATAL("multiple colors not supported for now");
   }
 
-  rec_->log_with_static(
+  rec()->log_with_static(
       entity_path,
       is_static,
       rerun::GraphNodes(cliques).with_labels(cliques).with_colors(
@@ -443,7 +454,7 @@ void VisualizerRerun::drawTfImpl(const std::string& entity_path,
           .with_relation(rerun::TransformRelation::ParentFromChild);
 
   // Rerun >=0.31 visualizes transform axes via a separate archetype.
-  rec_->log_with_static(
+  rec()->log_with_static(
       entity_path, is_static, transform, rerun::TransformAxes3D(axis_length));
 }
 

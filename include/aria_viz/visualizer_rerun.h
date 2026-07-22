@@ -160,7 +160,10 @@ class VisualizerRerun : public Visualizer {
   void addSpdlogToRerun(spdlog::level::level_enum level,
                         std::string prefix = "");
 
-  rerun::RecordingStream* rec() { return rec_.get(); }
+  rerun::RecordingStream* rec() {
+    setSystemTime();
+    return rec_.get();
+  }
 
   void plotBenchmarkStats() override;
 
@@ -169,13 +172,13 @@ class VisualizerRerun : public Visualizer {
     for (const auto& [label, value] : data) {
       std::stringstream ss;
       ss << entity_path << "/" << label;
-      rec_->log(ss.str(), rerun::Scalars(std::vector<double>{value}));
+      rec()->log(ss.str(), rerun::Scalars(std::vector<double>{value}));
     }
   }
 
   void drawScalar(const std::string& entity_path, double value) override {
     LOG_DATA(entity_path, value);
-    rec_->log(entity_path, rerun::Scalars(std::vector<double>{value}));
+    rec()->log(entity_path, rerun::Scalars(std::vector<double>{value}));
   }
 
   template <class BayesTree>
@@ -203,14 +206,14 @@ class VisualizerRerun : public Visualizer {
       }
     }
 
-    rec_->log_with_static(
+    rec()->log_with_static(
         entity_path,
         is_static,
         rerun::GraphNodes(cliques).with_labels(cliques).with_colors(colors));
-    rec_->log_with_static(entity_path,
-                          is_static,
-                          rerun::GraphEdges(edges).with_graph_type(
-                              rerun::components::GraphType::Directed));
+    rec()->log_with_static(entity_path,
+                           is_static,
+                           rerun::GraphEdges(edges).with_graph_type(
+                               rerun::components::GraphType::Directed));
   }
 
   void drawBayesTreeEdges(
@@ -248,7 +251,7 @@ class VisualizerRerun : public Visualizer {
       throw std::runtime_error("Unsupported image type");
     }
 
-    this->rec_->log_with_static(
+    this->rec()->log_with_static(
         entity_path,
         is_static,
         rerun::Image::from_rgba32(rgba32,
@@ -258,7 +261,7 @@ class VisualizerRerun : public Visualizer {
     auto rr_pinhole_camera =
         rerun::Pinhole().with_image_plane_distance(1).with_resolution(
             static_cast<float>(image.cols), static_cast<float>(image.rows));
-    this->rec_->log_with_static(entity_path, is_static, rr_pinhole_camera);
+    this->rec()->log_with_static(entity_path, is_static, rr_pinhole_camera);
   }
 
   void drawBayesTreeEdges(
@@ -294,6 +297,8 @@ class VisualizerRerun : public Visualizer {
                   bool is_static = false) override;
 
  private:
+  void setSystemTime();
+
   std::unique_ptr<rerun::RecordingStream> rec_;
 
   std::optional<AgentId> agent_id_;
