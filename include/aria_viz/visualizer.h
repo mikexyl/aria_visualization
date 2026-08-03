@@ -442,7 +442,8 @@ class Visualizer {
                    const Eigen::Vector4f& rgba,
                    float line_width,
                    bool show_labels = false,
-                   bool ignore_missing_values = false) {
+                   bool ignore_missing_values = false,
+                   const KeyFormatter& key_formatter = DefaultKeyFormatter) {
     std::vector<Eigen::Vector4f> colors(factors.size(), rgba);
     drawFactors(entity_path,
                 factors,
@@ -450,7 +451,8 @@ class Visualizer {
                 colors,
                 line_width,
                 show_labels,
-                ignore_missing_values);
+                ignore_missing_values,
+                key_formatter);
   }
 
   template <typename FactorType>
@@ -460,7 +462,8 @@ class Visualizer {
                    const std::vector<Eigen::Vector4f>& rgba,
                    float line_width,
                    bool show_labels = false,
-                   bool ignore_missing_values = false) {
+                   bool ignore_missing_values = false,
+                   const KeyFormatter& key_formatter = DefaultKeyFormatter) {
     std::vector<std::pair<Point3, Point3>> points;
     std::vector<std::string> labels;
     std::vector<Eigen::Vector4f> colors;
@@ -489,10 +492,10 @@ class Visualizer {
       if (p0.has_value() && p1.has_value()) {
         points.emplace_back(*p0, *p1);
         if (keys.size() == 2) {
-          labels.push_back(fmt::format(
-              "{}-{}", DefaultKeyFormatter(key), DefaultKeyFormatter(keys[1])));
+          labels.push_back(
+              fmt::format("{}-{}", key_formatter(key), key_formatter(keys[1])));
         } else {
-          labels.push_back(fmt::format("{}", DefaultKeyFormatter(key)));
+          labels.push_back(fmt::format("{}", key_formatter(key)));
         }
         colors.push_back(rgba.at(i));
       } else {
@@ -500,8 +503,8 @@ class Visualizer {
           continue;
         }
         LOG_FATAL("Factor has no value for key {} or {}",
-                  DefaultKeyFormatter(keys[0]),
-                  DefaultKeyFormatter(keys[1]));
+                  key_formatter(keys[0]),
+                  key_formatter(keys[1]));
       }
     }
 

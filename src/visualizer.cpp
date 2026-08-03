@@ -116,7 +116,8 @@ void Visualizer::drawFactors(const std::string& entity_path,
                              const Eigen::Vector4f& rgba,
                              float line_width,
                              bool show_labels,
-                             bool ignore_missing_values);
+                             bool ignore_missing_values,
+                             const KeyFormatter& key_formatter);
 
 template <>
 void Visualizer::drawFactors(const std::string& entity_path,
@@ -125,6 +126,7 @@ void Visualizer::drawFactors(const std::string& entity_path,
                              const Eigen::Vector4f& rgba,
                              float line_width,
                              bool show_labels,
-                             bool ignore_missing_values);
+                             bool ignore_missing_values,
+                             const KeyFormatter& key_formatter);
 
 }  // namespace aria::viz
